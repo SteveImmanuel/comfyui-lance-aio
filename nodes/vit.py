@@ -60,5 +60,5 @@ class VitLoader:
                 len(missing), len(unexpected), (missing[:5] + unexpected[:5]),
             )
 
-        return (patcher, vit_config)
+        return ({'patcher': patcher, 'module': vit}, vit_config)
 

@@ -113,4 +113,4 @@ class Qwen2CausalLMLoader:
                 len(missing), len(unexpected), (missing[:5] + unexpected[:5]),
             )
 
-        return (patcher,)
+        return ({"patcher": patcher, "module": language_model},)
