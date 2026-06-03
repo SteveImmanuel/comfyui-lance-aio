@@ -1,0 +1,21 @@
+{
+    "_attn_implementation": "flash_attention_2",
+    "depth": 32,
+    "fullatt_block_indexes": [7, 15, 23, 31],
+    "hidden_act": "silu",
+    "hidden_size": 1280,
+    "in_channels": 3,
+    "in_chans": 3,
+    "intermediate_size": 3420,
+    "model_type": "qwen2_5_vl",
+    "num_heads": 16,
+    "out_hidden_size": 2048,
+    "patch_size": 14,
+    "spatial_merge_size": 2,
+    "spatial_patch_size": 14,
+    "temporal_patch_size": 2,
+    "tokens_per_second": 2,
+    "torch_dtype": "bfloat16",
+    "transformers_version": "4.49.0",
+    "window_size": 112
+}
