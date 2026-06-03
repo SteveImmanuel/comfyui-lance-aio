@@ -14,7 +14,7 @@ from ..config.config_factory import ModelArguments
 
 class VitLoader:
     CATEGORY = "Lance"
-    RETURN_TYPES = ("VIT",)
+    RETURN_TYPES = ("VIT", "VIT_CONFIG")
     FUNCTION = "load"
     
     @classmethod
@@ -60,5 +60,5 @@ class VitLoader:
                 len(missing), len(unexpected), (missing[:5] + unexpected[:5]),
             )
 
-        return (patcher,)
+        return (patcher, vit_config)
 
