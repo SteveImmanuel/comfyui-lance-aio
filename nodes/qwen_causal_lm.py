@@ -7,8 +7,40 @@ import comfy.model_patcher
 import os.path as osp
 from ..modeling.qwen2.modeling_qwen2 import Qwen2Config
 from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
-from .utils import swap_to_manual_cast
 from ..config.config_factory import ModelArguments, InferenceArguments
+
+import comfy.ops
+
+def _swap_to_manual_cast(module: torch.nn.Module):
+    for name, child in list(module.named_children()):
+        if isinstance(child, torch.nn.Linear):
+            new = comfy.ops.manual_cast.Linear(
+                child.in_features, 
+                child.out_features,
+                bias=child.bias is not None,
+                device=torch.device("meta"), 
+                dtype=child.weight.dtype,
+            )
+            new.weight = child.weight
+            if child.bias is not None:
+                new.bias = child.bias
+            setattr(module, name, new)
+
+        elif isinstance(child, torch.nn.Embedding):
+            new = comfy.ops.manual_cast.Embedding(
+                child.num_embeddings, 
+                child.embedding_dim,
+                padding_idx=child.padding_idx,
+                device=torch.device("meta"), 
+                dtype=child.weight.dtype,
+            )
+            new.weight = child.weight
+            setattr(module, name, new)
+
+        else:
+            _swap_to_manual_cast(child)
+
+
 
 class Qwen2CausalLMLoader:
     CATEGORY = "Lance"
@@ -51,7 +83,7 @@ class Qwen2CausalLMLoader:
                 torch.set_default_dtype(default_dtype)
         language_model.eval()
 
-        swap_to_manual_cast(language_model)
+        _swap_to_manual_cast(language_model)
         patcher = comfy.model_patcher.CoreModelPatcher(
             language_model,
             load_device=mm.get_torch_device(),
