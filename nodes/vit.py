@@ -9,6 +9,7 @@ import comfy.model_patcher
 from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVisionConfig
 from comfy.text_encoders.qwen_vl import Qwen2VLVisionTransformer
 import os.path as osp
+from ..config.config_factory import ModelArguments
 
 
 class VitLoader:
@@ -20,17 +21,14 @@ class VitLoader:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "ckpt_path": (folder_paths.get_filename_list("text_encoders"),),
+                "model_args": ("MODEL_ARGS",),
             }
         }
 
-    def load(self, ckpt_path: str):
-        ckpt_path = folder_paths.get_full_path_or_raise("text_encoders", ckpt_path)
-        config_path = osp.join(osp.dirname(__file__), '..', 'config', 'qwen_25_vl.json')
+    def load(self, model_args: ModelArguments):
+        ckpt_path = osp.join(model_args.vit_path, "vit.safetensors")
+        vit_config = Qwen2_5_VLVisionConfig.from_pretrained(model_args.vit_path)
         
-        ckpt = comfy.utils.load_torch_file(ckpt_path)
-        vit_config = Qwen2_5_VLVisionConfig.from_pretrained(config_path)
-
         vit = Qwen2VLVisionTransformer(
             hidden_size=vit_config.hidden_size,
             output_hidden_size=vit_config.out_hidden_size,
@@ -54,6 +52,7 @@ class VitLoader:
         )
         patcher.set_model_compute_dtype(torch.bfloat16)
 
+        ckpt = comfy.utils.load_torch_file(ckpt_path)
         missing, unexpected = vit.load_state_dict(ckpt, strict=False, assign=patcher.is_dynamic())
         if missing or unexpected:
             logging.warning(
