@@ -6,14 +6,14 @@ from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVi
 from ..modeling.lance.lance import Lance, LanceConfig
 from ..config.config_factory import InferenceArguments, ModelArguments
 from ..common.utils.misc import AutoEncoderParams
-
+from comfy.model_patcher import CoreModelPatcher
 from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
 from comfy.text_encoders.qwen_vl import Qwen2VLVisionTransformer
 from ..data.data_utils import add_special_tokens
 
 class LanceLoader:
     CATEGORY = "Lance"
-    RETURN_TYPES = ("LANCE",)
+    RETURN_TYPES = ("LANCE", "QWEN_2_CAUSAL_LM", "VIT")
     FUNCTION = "load"
 
     @classmethod
@@ -23,7 +23,7 @@ class LanceLoader:
                 "model_args": ("MODEL_ARGS",),
                 "inference_args": ("INFERENCE_ARGS",),
                 "vae_config": ("VAE_CONFIG",),
-                "qwen2_causal_lm": ("Qwen2CausalLM",),
+                "qwen2_causal_lm": ("QWEN_2_CAUSAL_LM",),
             },
             "optional": {
                 "vit": ("VIT",),
@@ -36,18 +36,15 @@ class LanceLoader:
         model_args: ModelArguments,
         inference_args: InferenceArguments,
         vae_config: AutoEncoderParams,
-        qwen2_causal_lm: Qwen2ForCausalLM, 
-        vit: Qwen2VLVisionTransformer=None,
+        qwen2_causal_lm: CoreModelPatcher, 
+        vit: CoreModelPatcher=None,
         vit_config: Qwen2_5_VLVisionConfig=None,
     ):
         ckpt_path = osp.join(model_args.model_path, "model.safetensors")
         ckpt_path = folder_paths.get_full_path_or_raise("diffusion_models", ckpt_path)
 
-        llm_patcher = qwen2_causal_lm
-        vit_patcher = vit
-
-        language_model = llm_patcher.model
-        vit_model = vit_patcher.model if vit_patcher is not None else None
+        language_model: Qwen2ForCausalLM = qwen2_causal_lm.model
+        vit_model: Qwen2VLVisionTransformer = vit.model if vit is not None else None
         llm_config = language_model.config
 
         config = LanceConfig(
@@ -73,8 +70,6 @@ class LanceLoader:
             training_args=inference_args,
         )
 
-        if inference_args.copy_init_moe:
-            lance.language_model.init_moe()
 
         ckpt = comfy.utils.load_torch_file(ckpt_path)
         glue_sd = {
@@ -84,12 +79,12 @@ class LanceLoader:
         }
         missing, unexpected = lance.load_state_dict(glue_sd, strict=False)
 
-        return (lance,)
+        return (lance, qwen2_causal_lm, vit)
 
 
 class LanceConfigure:
     CATEGORY = "Lance"
-    RETURN_TYPES = ("LANCE", "TOKENIZER", "NEW_TOKEN_IDS")
+    RETURN_TYPES = ("LANCE", "NEW_TOKEN_IDS")
     FUNCTION = "configure"
 
     @classmethod
@@ -129,4 +124,4 @@ class LanceConfigure:
             assert lance.language_model.get_input_embeddings().weight.data.data_ptr() != lance.language_model.get_output_embeddings().weight.data.data_ptr(), 'tie_word_embeddings conflict'
 
         lance.eval()
-        return (lance, tokenizer, new_token_ids)
+        return (lance, new_token_ids)

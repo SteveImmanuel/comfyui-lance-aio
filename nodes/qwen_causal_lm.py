@@ -44,7 +44,7 @@ def _swap_to_manual_cast(module: torch.nn.Module):
 
 class Qwen2CausalLMLoader:
     CATEGORY = "Lance"
-    RETURN_TYPES = ("Qwen2CausalLM",)
+    RETURN_TYPES = ("QWEN_2_CAUSAL_LM",)
     FUNCTION = "load"
     
     @classmethod
@@ -81,6 +81,10 @@ class Qwen2CausalLMLoader:
                 language_model = Qwen2ForCausalLM(llm_config)
             finally:
                 torch.set_default_dtype(default_dtype)
+
+        if inference_args.copy_init_moe:
+            language_model.init_moe()
+
         language_model.eval()
 
         _swap_to_manual_cast(language_model)
