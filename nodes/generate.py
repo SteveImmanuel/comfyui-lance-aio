@@ -1,20 +1,12 @@
-import folder_paths
-import comfy.utils
 import comfy.model_management as mm
-import os.path as osp
-from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVisionConfig
-from ..modeling.lance.lance import Lance, LanceConfig
-from ..config.config_factory import InferenceArguments, ModelArguments, DataArguments
-from ..common.utils.misc import AutoEncoderParams
-from comfy.model_patcher import CoreModelPatcher
-from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
-from comfy.text_encoders.qwen_vl import Qwen2VLVisionTransformer
-from ..data.data_utils import add_special_tokens
-from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
-from torch.utils.data import DataLoader
 import torch
+from torch.utils.data import DataLoader
+
+from ..common.val.utils import decode_video_tensor, make_padded_latent
+from ..config.config_factory import InferenceArguments, ModelArguments
 from ..data.dataset_base import SimpleCustomBatch
-from ..common.val.utils import make_padded_latent, decode_video_tensor
+from ..modeling.lance.lance import Lance
+from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
 from ..modeling.vae.wan.model import WanVideoVAE
 
 TASK_T2V = "t2v"
@@ -46,10 +38,12 @@ def _clean_memory(*objects):
         elif isinstance(obj, (list, set)):
             obj.clear()
     import gc
+
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         torch.cuda.ipc_collect()
+
 
 class LanceGenerate:
     CATEGORY = "Lance"
@@ -59,8 +53,7 @@ class LanceGenerate:
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
-        return float("NaN")    # NaN != NaN → always considered changed
-
+        return float("NaN")  # NaN != NaN → always considered changed
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -79,26 +72,26 @@ class LanceGenerate:
                 "wan_vae": ("WAN_VAE",),
             },
         }
-    
+
     def generate(
         self,
-        model_args: ModelArguments, 
+        model_args: ModelArguments,
         inference_args: InferenceArguments,
         data_loader: DataLoader,
         lance: Lance,
         new_token_ids: dict,
         tokenizer: Qwen2Tokenizer,
-        qwen2_causal_lm: dict, 
-        vit: dict=None,
-        wan_vae: dict=None,
+        qwen2_causal_lm: dict,
+        vit: dict = None,
+        wan_vae: dict = None,
     ):
         device = mm.get_torch_device()
 
-        patchers = [qwen2_causal_lm['patcher']]
+        patchers = [qwen2_causal_lm["patcher"]]
         if vit:
-            patchers.append(vit['patcher'])
+            patchers.append(vit["patcher"])
         if wan_vae:
-            patchers.append(wan_vae['patcher'])
+            patchers.append(wan_vae["patcher"])
 
         mm.load_models_gpu(patchers)
         lance.time_embedder.to(device)
@@ -106,15 +99,16 @@ class LanceGenerate:
         lance.llm2vae.to(device)
         lance.latent_pos_embed.to(device)
 
-
         batch: SimpleCustomBatch = next(iter(data_loader))
         data_dict: dict = batch.cuda(device).to_dict()
         image_token_id = lance.language_model.config.video_token_id
-        wan_vae_module: WanVideoVAE = wan_vae['module']
+        wan_vae_module: WanVideoVAE = wan_vae["module"]
 
         with torch.no_grad(), torch.amp.autocast("cuda", enabled=True, dtype=torch.bfloat16):
             if "padded_videos" in data_dict.keys():
-                data_dict["padded_latent"] = make_padded_latent(data_dict["padded_videos"], data_dict["vae_data_mode"], wan_vae_module)
+                data_dict["padded_latent"] = make_padded_latent(
+                    data_dict["padded_videos"], data_dict["vae_data_mode"], wan_vae_module
+                )
 
             if inference_args.task in GENERATION_TASKS:
                 save_fps = int(data_dict.get("save_fps", 12))
@@ -149,7 +143,9 @@ class LanceGenerate:
                     "vit_video_grid_thw": data_dict.get("vit_video_grid_thw", None),
                     "vae_video_grid_thw": data_dict["vae_video_grid_thw"],
                     "video_grid_thw": data_dict.get("video_grid_thw", None),
-                    "caption": data_dict.get("caption", None),  # The dataset uses "caption" as the default caption field.
+                    "caption": data_dict.get(
+                        "caption", None
+                    ),  # The dataset uses "caption" as the default caption field.
                     "sample_task": data_dict["sample_task"],
                     "sample_modality": data_dict["sample_modality"],
                     "cfg_type": inference_args.cfg_type,
@@ -174,7 +170,13 @@ class LanceGenerate:
                         v_list.append(wan_vae_module.vae_decode([latent_])[0])
 
                     save_item_name = f"{index:06d}" if isinstance(index, int) else index
-                    v_thwc = decode_video_tensor(v_list, save_path=inference_args.save_path_gen, save_half=False, save_item_name=save_item_name, save_fps=save_fps)
+                    v_thwc = decode_video_tensor(
+                        v_list,
+                        save_path=inference_args.save_path_gen,
+                        save_half=False,
+                        save_item_name=save_item_name,
+                        save_fps=save_fps,
+                    )
 
                     if v_thwc.shape[0] > 1:
                         prompt_data_path = f"{save_item_name}.mp4"

@@ -1,17 +1,17 @@
+import logging
 import os
 import os.path as osp
-import folder_paths
+
 import comfy.model_management as mm
-import torch
-import logging
+import comfy.model_patcher
 import comfy.ops
 import comfy.utils
-import comfy.model_patcher
-from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVisionConfig
+import torch
 from comfy.text_encoders.qwen_vl import Qwen2VLVisionTransformer
-import os.path as osp
-from ..config.config_factory import ModelArguments
+from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVisionConfig
+
 from ..constants import CKPT_ROOT_DIR
+
 
 class VitLoader:
     CATEGORY = "Lance"
@@ -21,7 +21,11 @@ class VitLoader:
 
     @classmethod
     def INPUT_TYPES(cls):
-        dirs = sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d))) if osp.isdir(CKPT_ROOT_DIR) else []
+        dirs = (
+            sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d)))
+            if osp.isdir(CKPT_ROOT_DIR)
+            else []
+        )
         return {
             "required": {
                 "ckpt_dir": (dirs, {"default": "Qwen2.5-VL-ViT"}),
@@ -40,7 +44,7 @@ class VitLoader:
         ckpt_dir = osp.join(CKPT_ROOT_DIR, ckpt_dir)
         ckpt_path = osp.join(ckpt_dir, "vit.safetensors")
         vit_config = Qwen2_5_VLVisionConfig.from_pretrained(ckpt_dir)
-        
+
         vit = Qwen2VLVisionTransformer(
             hidden_size=vit_config.hidden_size,
             output_hidden_size=vit_config.out_hidden_size,
@@ -69,8 +73,9 @@ class VitLoader:
         if missing or unexpected:
             logging.warning(
                 "[Lance VitLoader] state_dict mismatch: missing=%d unexpected=%d %s",
-                len(missing), len(unexpected), (missing[:5] + unexpected[:5]),
+                len(missing),
+                len(unexpected),
+                (missing[:5] + unexpected[:5]),
             )
 
-        return ({'patcher': patcher, 'module': vit}, vit_config)
-
+        return ({"patcher": patcher, "module": vit}, vit_config)

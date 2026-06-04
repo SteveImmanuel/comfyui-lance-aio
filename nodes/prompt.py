@@ -1,13 +1,9 @@
-import json
-import tempfile
+from torch.utils.data import DataLoader
 
-import folder_paths
-
-from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
+from ..config.config_factory import DataArguments, InferenceArguments, ModelArguments
 from ..data.dataset_base import DataConfig, simple_custom_collate
 from ..data.datasets_custom import ValidationDataset
-from ..config.config_factory import ModelArguments, DataArguments, InferenceArguments
-from torch.utils.data import DataLoader
+from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
 
 
 class LancePrompt:
@@ -25,14 +21,14 @@ class LancePrompt:
                 "inference_args": ("INFERENCE_ARGS",),
                 "data_config": ("DATA_CONFIG",),
                 "tokenizer": ("TOKENIZER",),
-                "new_token_ids": ("NEW_TOKEN_IDS",)
+                "new_token_ids": ("NEW_TOKEN_IDS",),
             }
         }
 
     def load(
-        self, 
-        data_args: DataArguments, 
-        model_args: ModelArguments, 
+        self,
+        data_args: DataArguments,
+        model_args: ModelArguments,
         inference_args: InferenceArguments,
         data_config: DataConfig,
         tokenizer: Qwen2Tokenizer,
@@ -43,7 +39,7 @@ class LancePrompt:
         #     prompt_path = f.name
 
         dataset = ValidationDataset(
-            jsonl_path= data_args.val_dataset_config_file,
+            jsonl_path=data_args.val_dataset_config_file,
             tokenizer=tokenizer,
             data_args=data_args,
             model_args=model_args,

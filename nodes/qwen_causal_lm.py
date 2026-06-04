@@ -1,26 +1,27 @@
-import os.path as osp
-import torch
-import comfy.model_management as mm
 import logging
-import comfy.utils
-import comfy.model_patcher
-import os.path as osp
-from ..modeling.qwen2.modeling_qwen2 import Qwen2Config
-from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
-from ..config.config_factory import ModelArguments, InferenceArguments
-
-import comfy.ops
-from ..constants import CKPT_ROOT_DIR
 import os
+import os.path as osp
+
+import comfy.model_management as mm
+import comfy.model_patcher
+import comfy.ops
+import comfy.utils
+import torch
+
+from ..config.config_factory import InferenceArguments, ModelArguments
+from ..constants import CKPT_ROOT_DIR
+from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
+from ..modeling.qwen2.modeling_qwen2 import Qwen2Config
+
 
 def _swap_to_manual_cast(module: torch.nn.Module):
     for name, child in list(module.named_children()):
         if isinstance(child, torch.nn.Linear):
             new = comfy.ops.manual_cast.Linear(
-                child.in_features, 
+                child.in_features,
                 child.out_features,
                 bias=child.bias is not None,
-                device=torch.device("meta"), 
+                device=torch.device("meta"),
                 dtype=child.weight.dtype,
             )
             new.weight = child.weight
@@ -30,10 +31,10 @@ def _swap_to_manual_cast(module: torch.nn.Module):
 
         elif isinstance(child, torch.nn.Embedding):
             new = comfy.ops.manual_cast.Embedding(
-                child.num_embeddings, 
+                child.num_embeddings,
                 child.embedding_dim,
                 padding_idx=child.padding_idx,
-                device=torch.device("meta"), 
+                device=torch.device("meta"),
                 dtype=child.weight.dtype,
             )
             new.weight = child.weight
@@ -43,16 +44,19 @@ def _swap_to_manual_cast(module: torch.nn.Module):
             _swap_to_manual_cast(child)
 
 
-
 class Qwen2CausalLMLoader:
     CATEGORY = "Lance"
     RETURN_TYPES = ("QWEN_2_CAUSAL_LM",)
     FUNCTION = "load"
     # OUTPUT_NODE = True
-    
+
     @classmethod
     def INPUT_TYPES(cls):
-        dirs = sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d))) if osp.isdir(CKPT_ROOT_DIR) else []
+        dirs = (
+            sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d)))
+            if osp.isdir(CKPT_ROOT_DIR)
+            else []
+        )
         return {
             "required": {
                 "ckpt_dir": (dirs, {"default": "Lance_3B"}),
@@ -111,7 +115,7 @@ class Qwen2CausalLMLoader:
         ckpt = comfy.utils.load_torch_file(ckpt_path)
         # remap ckpt because lang model is fused together with lance
         prefix = "language_model."
-        llm_sd = {k[len(prefix):]: v for k, v in ckpt.items() if k.startswith(prefix)}
+        llm_sd = {k[len(prefix) :]: v for k, v in ckpt.items() if k.startswith(prefix)}
 
         if low_memory:
             missing, unexpected = language_model.load_state_dict(llm_sd, strict=False, assign=True)
@@ -123,7 +127,9 @@ class Qwen2CausalLMLoader:
         if missing or unexpected:
             logging.warning(
                 "[Lance VitLoader] state_dict mismatch: missing=%d unexpected=%d %s",
-                len(missing), len(unexpected), (missing[:5] + unexpected[:5]),
+                len(missing),
+                len(unexpected),
+                (missing[:5] + unexpected[:5]),
             )
 
         return ({"patcher": patcher, "module": language_model},)

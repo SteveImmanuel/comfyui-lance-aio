@@ -1,21 +1,48 @@
-from ..config.config_factory import ModelArguments, DataArguments, InferenceArguments
+from ..common.utils.misc import AutoEncoderParams, tuple_mul
+from ..config.config_factory import DataArguments, InferenceArguments, ModelArguments
 from ..data.dataset_base import DataConfig
-from ..common.utils.misc import tuple_mul, AutoEncoderParams
-import folder_paths
-import os.path as osp
+
 
 def _parse_ints(s):
     return tuple(int(x) for x in s.replace(" ", "").split(","))
 
 
 TASK_DEFAULT_CONFIGS = {
-    "t2i": {"model_family": "image", "example_json": "config/examples/t2i_example.json", "save_path_prefix": "results/t2i_sample"},
-    "t2v": {"model_family": "video", "example_json": "config/examples/t2v_example.json", "save_path_prefix": "results/t2v_sample"},
-    "i2v": {"model_family": "video", "example_json": "config/examples/i2v_example.json", "save_path_prefix": "results/i2v_sample"},
-    "image_edit": {"model_family": "image", "example_json": "config/examples/image_edit_example.json", "save_path_prefix": "results/image_edit_sample"},
-    "video_edit": {"model_family": "video", "example_json": "config/examples/video_edit_example.json", "save_path_prefix": "results/video_edit_sample"},
-    "x2t_image": {"model_family": "image", "example_json": "config/examples/x2t_image_example.json", "save_path_prefix": "results/x2t_image_sample"},
-    "x2t_video": {"model_family": "video", "example_json": "config/examples/x2t_video_example.json", "save_path_prefix": "results/x2t_video_sample"},
+    "t2i": {
+        "model_family": "image",
+        "example_json": "config/examples/t2i_example.json",
+        "save_path_prefix": "results/t2i_sample",
+    },
+    "t2v": {
+        "model_family": "video",
+        "example_json": "config/examples/t2v_example.json",
+        "save_path_prefix": "results/t2v_sample",
+    },
+    "i2v": {
+        "model_family": "video",
+        "example_json": "config/examples/i2v_example.json",
+        "save_path_prefix": "results/i2v_sample",
+    },
+    "image_edit": {
+        "model_family": "image",
+        "example_json": "config/examples/image_edit_example.json",
+        "save_path_prefix": "results/image_edit_sample",
+    },
+    "video_edit": {
+        "model_family": "video",
+        "example_json": "config/examples/video_edit_example.json",
+        "save_path_prefix": "results/video_edit_sample",
+    },
+    "x2t_image": {
+        "model_family": "image",
+        "example_json": "config/examples/x2t_image_example.json",
+        "save_path_prefix": "results/x2t_image_sample",
+    },
+    "x2t_video": {
+        "model_family": "video",
+        "example_json": "config/examples/x2t_video_example.json",
+        "save_path_prefix": "results/x2t_video_sample",
+    },
 }
 INTERNAL_VALIDATION_MAX_SAMPLES = 100000
 
@@ -101,6 +128,7 @@ class LanceDataArgs:
     def build(self, val_dataset_config_file):
         return (DataArguments(val_dataset_config_file=val_dataset_config_file or None),)
 
+
 class ApplyDefaultArgs:
     CATEGORY = "Lance/config"
     RETURN_TYPES = ("DATA_ARGS", "MODEL_ARGS", "INFERENCE_ARGS")
@@ -140,7 +168,7 @@ class ApplyDefaultArgs:
             inference_args.resolution = task_config.get("resolution", defaults.resolution)
         if inference_args.text_template == defaults.text_template:
             inference_args.text_template = bool(task_config.get("text_template", defaults.text_template))
-        inference_args.vae_model_type = 'wan'
+        inference_args.vae_model_type = "wan"
 
         # print(data_args)
         # print()
@@ -150,6 +178,7 @@ class ApplyDefaultArgs:
         # print()
 
         return (data_args, model_args, inference_args)
+
 
 class LanceDataConfig:
     CATEGORY = "Lance/config"
@@ -164,24 +193,24 @@ class LanceDataConfig:
                 "data_args": ("DATA_ARGS",),
                 "model_args": ("MODEL_ARGS",),
                 "inference_args": ("INFERENCE_ARGS",),
-                "vae_config": ("VAE_CONFIG",)
+                "vae_config": ("VAE_CONFIG",),
             }
         }
 
     def build(
-        self, 
-        data_args: DataArguments, 
-        model_args: ModelArguments, 
+        self,
+        data_args: DataArguments,
+        model_args: ModelArguments,
         inference_args: InferenceArguments,
         vae_config: AutoEncoderParams,
     ):
         cfg = DataConfig.from_yaml(data_args.val_dataset_config_file)
-        
+
         if inference_args.visual_und:
             cfg.vit_patch_size = model_args.vit_patch_size
             cfg.vit_patch_size_temporal = model_args.vit_patch_size_temporal
             cfg.vit_max_num_patch_per_side = model_args.vit_max_num_patch_per_side
-        
+
         if inference_args.visual_gen:
             cfg.latent_patch_size = model_args.latent_patch_size
             cfg.vae_downsample = tuple_mul(
@@ -190,11 +219,11 @@ class LanceDataConfig:
             )
             cfg.max_latent_size = model_args.max_latent_size
             cfg.max_num_frames = model_args.max_num_frames
-        
+
         cfg.text_cond_dropout_prob = model_args.text_cond_dropout_prob
         cfg.vae_cond_dropout_prob = model_args.vae_cond_dropout_prob
         cfg.vit_cond_dropout_prob = model_args.vit_cond_dropout_prob
-        
+
         cfg.num_frames = inference_args.num_frames
         cfg.H = inference_args.video_height
         cfg.W = inference_args.video_width
@@ -204,5 +233,5 @@ class LanceDataConfig:
         cfg.text_template = inference_args.text_template
         cfg.enhance_prompt = inference_args.enhance_prompt
         cfg.system_prompt_type = inference_args.system_prompt_type
-        
+
         return (cfg,)

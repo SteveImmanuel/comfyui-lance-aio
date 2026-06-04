@@ -1,16 +1,16 @@
-import folder_paths
-import torch
-import comfy.model_management as mm
-from copy import deepcopy
-from einops import rearrange
-from comfy.model_patcher import CoreModelPatcher
-
-from ..modeling.vae.wan.model import WanVideoVAE, reparameterize
-from ..modeling.vae.wan.vae2_2 import Wan2_2_VAE
-import folder_paths
 import os
 import os.path as osp
+from copy import deepcopy
+
+import comfy.model_management as mm
+import torch
+from comfy.model_patcher import CoreModelPatcher
+from einops import rearrange
+
 from ..constants import CKPT_ROOT_DIR
+from ..modeling.vae.wan.model import WanVideoVAE, reparameterize
+from ..modeling.vae.wan.vae2_2 import Wan2_2_VAE
+
 
 class _WrapWanVideoVAE(WanVideoVAE):
     # WanVideoVAE resolves the weight path via get_model_path; override to inject our own.
@@ -62,10 +62,10 @@ class WANVAELoader:
 
     @classmethod
     def INPUT_TYPES(cls):
-        paths = [x for x in os.listdir(CKPT_ROOT_DIR) if x.endswith('.pth')]
+        paths = [x for x in os.listdir(CKPT_ROOT_DIR) if x.endswith(".pth")]
         return {
             "required": {
-                "ckpt_path": (paths, {'default': 'Wan2.2_VAE.pth'}),
+                "ckpt_path": (paths, {"default": "Wan2.2_VAE.pth"}),
             }
         }
 
