@@ -49,6 +49,7 @@ class LanceGenerate:
     CATEGORY = "Lance"
     RETURN_TYPES = ()
     FUNCTION = "generate"
+    RETURN_TYPES = ("IMAGE",)
     OUTPUT_NODE = True
 
     @classmethod
@@ -173,6 +174,7 @@ class LanceGenerate:
                     v_thwc = decode_video_tensor(
                         v_list,
                         save_path=inference_args.save_path_gen,
+                        # save_path=inference_args.save_path_gen,
                         save_half=False,
                         save_item_name=save_item_name,
                         save_fps=save_fps,
@@ -182,7 +184,13 @@ class LanceGenerate:
                         prompt_data_path = f"{save_item_name}.mp4"
                     else:
                         prompt_data_path = f"{save_item_name}.png"
-                    inference_args.prompt_data_dict[prompt_data_path] = captions[i_val]
+                    
+
+                    image = torch.tensor(v_thwc) / 255.0
+                    # return torch.tensor(v_thwc) / 255.0
+                    return(image,)
+                    # print(v_thwc.shape, v_thwc.max(), v_thwc.min())
+                    # inference_args.prompt_data_dict[prompt_data_path] = captions[i_val]
 
                     # if save_source_video:
                     #     curr_padded_videos = padded_videos[i_val * 2 : (i_val + 1) * 2]

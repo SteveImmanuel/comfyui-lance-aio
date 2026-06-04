@@ -168,7 +168,9 @@ class ApplyDefaultArgs:
             inference_args.resolution = task_config.get("resolution", defaults.resolution)
         if inference_args.text_template == defaults.text_template:
             inference_args.text_template = bool(task_config.get("text_template", defaults.text_template))
+        
         inference_args.vae_model_type = "wan"
+        inference_args.save_path_gen = ""
 
         # print(data_args)
         # print()
