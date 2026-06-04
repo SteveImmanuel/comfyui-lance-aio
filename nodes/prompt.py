@@ -14,6 +14,7 @@ class LancePrompt:
     CATEGORY = "Lance"
     RETURN_TYPES = ("DATA_LOADER",)
     FUNCTION = "load"
+    # OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):

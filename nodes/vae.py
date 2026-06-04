@@ -58,6 +58,7 @@ class WANVAELoader:
     CATEGORY = "Lance"
     RETURN_TYPES = ("WAN_VAE", "VAE_CONFIG")
     FUNCTION = "load"
+    # OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):

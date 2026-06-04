@@ -48,6 +48,7 @@ class Qwen2CausalLMLoader:
     CATEGORY = "Lance"
     RETURN_TYPES = ("QWEN_2_CAUSAL_LM",)
     FUNCTION = "load"
+    # OUTPUT_NODE = True
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -70,8 +71,8 @@ class Qwen2CausalLMLoader:
         return True
 
     def load(self, ckpt_dir: str, model_args: ModelArguments, inference_args: InferenceArguments, low_memory: bool):
-        ckpt_path = osp.join(ckpt_dir, "model.safetensors")
-        llm_config: Qwen2Config = Qwen2Config.from_json_file(osp.join(ckpt_dir, "llm_config.json"))
+        ckpt_path = osp.join(CKPT_ROOT_DIR, ckpt_dir, "model.safetensors")
+        llm_config: Qwen2Config = Qwen2Config.from_json_file(osp.join(CKPT_ROOT_DIR, ckpt_dir, "llm_config.json"))
 
         llm_config.layer_module = model_args.layer_module
         llm_config.qk_norm = model_args.llm_qk_norm

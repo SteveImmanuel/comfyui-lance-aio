@@ -20,6 +20,7 @@ class LanceLoader:
     CATEGORY = "Lance"
     RETURN_TYPES = ("LANCE",)
     FUNCTION = "load"
+    # OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -55,7 +56,7 @@ class LanceLoader:
         vit: dict=None,
         vit_config: Qwen2_5_VLVisionConfig=None,
     ):
-        ckpt_path = osp.join(ckpt_dir, "model.safetensors")
+        ckpt_path = osp.join(CKPT_ROOT_DIR, ckpt_dir, "model.safetensors")
 
         language_model: Qwen2ForCausalLM = qwen2_causal_lm['module']
         vit_model: Qwen2VLVisionTransformer = vit['module'] if vit is not None else None

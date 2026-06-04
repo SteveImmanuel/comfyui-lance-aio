@@ -36,7 +36,7 @@ class LanceModelArgs:
                 "tie_word_embeddings": ("BOOLEAN", {"default": False}),
                 "latent_patch_size": ("STRING", {"default": "1,1,1"}),
                 "max_latent_size": ("INT", {"default": 64, "min": 1, "max": 1024}),
-                "max_num_frames": ("INT", {"default": 1, "min": 1, "max": 1024}),
+                "max_num_frames": ("INT", {"default": 121, "min": 1, "max": 1024}),
                 "vit_type": ("STRING", {"default": "qwen_2_5_vl_original"}),
                 "vit_path": ("STRING", {"default": ""}),
                 "vit_patch_size": ("INT", {"default": 14, "min": 1, "max": 64}),
@@ -63,7 +63,7 @@ class LanceInferenceArgs:
                 "resolution": ("STRING", {"default": "image_768res"}),
                 "video_height": ("INT", {"default": 768, "min": 64, "max": 4096, "step": 16}),
                 "video_width": ("INT", {"default": 768, "min": 64, "max": 4096, "step": 16}),
-                "num_frames": ("INT", {"default": 1, "min": 1, "max": 1024}),
+                "num_frames": ("INT", {"default": 50, "min": 1, "max": 1024}),
                 "text_template": ("BOOLEAN", {"default": True}),
                 "apply_qwen_2_5_vl_pos_emb": ("BOOLEAN", {"default": True}),
                 "visual_gen": ("BOOLEAN", {"default": True}),
@@ -74,7 +74,7 @@ class LanceInferenceArgs:
                 "enhance_prompt": ("BOOLEAN", {"default": False}),
                 "timestep_shift": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.1}),
                 "validation_num_timesteps": ("INT", {"default": 30, "min": 1, "max": 200}),
-                "validation_timestep_shift": ("FLOAT", {"default": 3.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+                "validation_timestep_shift": ("FLOAT", {"default": 3.5, "min": 0.0, "max": 10.0, "step": 0.1}),
                 "cfg_renorm_type": ("STRING", {"default": "global"}),
                 "cfg_renorm_min": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "system_prompt_type": ("STRING", {"default": "SP0"}),
@@ -106,6 +106,7 @@ class ApplyDefaultArgs:
     RETURN_TYPES = ("DATA_ARGS", "MODEL_ARGS", "INFERENCE_ARGS")
     RETURN_NAMES = ("data_args", "model_args", "inference_args")
     FUNCTION = "build"
+    # OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -139,6 +140,14 @@ class ApplyDefaultArgs:
             inference_args.resolution = task_config.get("resolution", defaults.resolution)
         if inference_args.text_template == defaults.text_template:
             inference_args.text_template = bool(task_config.get("text_template", defaults.text_template))
+        inference_args.vae_model_type = 'wan'
+
+        # print(data_args)
+        # print()
+        # print(model_args)
+        # print()
+        # print(inference_args)
+        # print()
 
         return (data_args, model_args, inference_args)
 
@@ -146,6 +155,7 @@ class LanceDataConfig:
     CATEGORY = "Lance/config"
     RETURN_TYPES = ("DATA_CONFIG",)
     FUNCTION = "build"
+    OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
