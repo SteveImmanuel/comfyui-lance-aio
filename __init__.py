@@ -4,10 +4,11 @@ __version__ = "0.1.0"
 
 from .nodes.vit import VitLoader
 from .nodes.qwen_causal_lm import Qwen2CausalLMLoader
-from .nodes.lance import LanceLoader
-from .nodes.text_encode import TextEncoder
+from .nodes.lance import LanceLoader, LanceConfigure
+from .nodes.prompt import LancePrompt
+from .nodes.tokenizer import LanceTokenizerLoader
+from .nodes.vae import WANVAELoader
 from .nodes.config import (
-    LanceVaeConfig,
     LanceModelArgs,
     LanceInferenceArgs,
     LanceDataArgs,
@@ -18,9 +19,11 @@ from .nodes.config import (
 NODE_CLASS_MAPPINGS = {
     "ViT Loader": VitLoader,
     "Qwen 2 Causal LM Loader": Qwen2CausalLMLoader,
+    "WAN VAE Loader": WANVAELoader,
     "Lance Loader": LanceLoader,
-    "Text Encoder": TextEncoder,
-    "Lance VAE Config": LanceVaeConfig,
+    "Lance Configure": LanceConfigure,
+    "Lance Prompt": LancePrompt,
+    "Lance Tokenizer Loader": LanceTokenizerLoader,
     "Lance Model Args": LanceModelArgs,
     "Lance Inference Args": LanceInferenceArgs,
     "Lance Data Args": LanceDataArgs,
