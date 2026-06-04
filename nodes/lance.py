@@ -10,10 +10,11 @@ from comfy.model_patcher import CoreModelPatcher
 from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
 from comfy.text_encoders.qwen_vl import Qwen2VLVisionTransformer
 from ..data.data_utils import add_special_tokens
+from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
 
 class LanceLoader:
     CATEGORY = "Lance"
-    RETURN_TYPES = ("LANCE", "QWEN_2_CAUSAL_LM", "VIT")
+    RETURN_TYPES = ("LANCE",)
     FUNCTION = "load"
 
     @classmethod
@@ -36,15 +37,15 @@ class LanceLoader:
         model_args: ModelArguments,
         inference_args: InferenceArguments,
         vae_config: AutoEncoderParams,
-        qwen2_causal_lm: CoreModelPatcher, 
-        vit: CoreModelPatcher=None,
+        qwen2_causal_lm: dict, 
+        vit: dict=None,
         vit_config: Qwen2_5_VLVisionConfig=None,
     ):
         ckpt_path = osp.join(model_args.model_path, "model.safetensors")
         ckpt_path = folder_paths.get_full_path_or_raise("diffusion_models", ckpt_path)
 
-        language_model: Qwen2ForCausalLM = qwen2_causal_lm.model
-        vit_model: Qwen2VLVisionTransformer = vit.model if vit is not None else None
+        language_model: Qwen2ForCausalLM = qwen2_causal_lm['module']
+        vit_model: Qwen2VLVisionTransformer = vit['module'] if vit is not None else None
         llm_config = language_model.config
 
         config = LanceConfig(
@@ -79,7 +80,7 @@ class LanceLoader:
         }
         missing, unexpected = lance.load_state_dict(glue_sd, strict=False)
 
-        return (lance, qwen2_causal_lm, vit)
+        return (lance,)
 
 
 class LanceConfigure:
@@ -101,7 +102,7 @@ class LanceConfigure:
         self,
         model_args: ModelArguments,
         lance: Lance,
-        tokenizer,
+        tokenizer: Qwen2Tokenizer,
     ):
         tokenizer, new_token_ids, num_new_tokens = add_special_tokens(tokenizer)
 
