@@ -53,8 +53,13 @@ def _clean_memory(*objects):
 
 class LanceGenerate:
     CATEGORY = "Lance"
-    RETURN_TYPES = ("LANCE", "QWEN_2_CAUSAL_LM", "VIT")
+    RETURN_TYPES = ()
     FUNCTION = "generate"
+    OUTPUT_NODE = True
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("NaN")    # NaN != NaN → always considered changed
 
 
     @classmethod
@@ -65,9 +70,9 @@ class LanceGenerate:
                 "inference_args": ("INFERENCE_ARGS",),
                 "data_loader": ("DATA_LOADER",),
                 "lance": ("LANCE",),
-                "qwen2_causal_lm": ("QWEN_2_CAUSAL_LM",),
                 "new_token_ids": ("NEW_TOKEN_IDS",),
                 "tokenizer": ("TOKENIZER",),
+                "qwen2_causal_lm": ("QWEN_2_CAUSAL_LM",),
             },
             "optional": {
                 "vit": ("VIT",),
@@ -81,9 +86,9 @@ class LanceGenerate:
         inference_args: InferenceArguments,
         data_loader: DataLoader,
         lance: Lance,
-        qwen2_causal_lm: dict, 
         new_token_ids: dict,
         tokenizer: Qwen2Tokenizer,
+        qwen2_causal_lm: dict, 
         vit: dict=None,
         wan_vae: dict=None,
     ):

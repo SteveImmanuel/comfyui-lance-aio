@@ -15,6 +15,7 @@ from .nodes.config import (
     ApplyDefaultArgs,
     LanceDataConfig,
 )
+from .nodes.generate import LanceGenerate
 
 NODE_CLASS_MAPPINGS = {
     "ViT Loader": VitLoader,
@@ -29,6 +30,7 @@ NODE_CLASS_MAPPINGS = {
     "Lance Data Args": LanceDataArgs,
     "Lance Apply Default Args": ApplyDefaultArgs,
     "Lance Data Config": LanceDataConfig,
+    "Lance Generate": LanceGenerate,
 }
 
 
