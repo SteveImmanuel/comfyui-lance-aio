@@ -1,0 +1,16 @@
+line-length = 120
+target-version = "py310"
+
+extend-exclude = ["Lance", "common", "config", "data", "modeling"]
+
+[lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes: unused imports/vars, undefined names
+    "I",  # isort: import sorting
+]
+ignore = ["E501"]
+
+[format]
+quote-style = "double"
