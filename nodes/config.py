@@ -19,19 +19,6 @@ TASK_DEFAULT_CONFIGS = {
 INTERNAL_VALIDATION_MAX_SAMPLES = 100000
 
 
-class LanceVaeConfig:
-    CATEGORY = "Lance/config"
-    RETURN_TYPES = ("VAE_CONFIG",)
-    FUNCTION = "build"
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {"required": {}}
-
-    def build(self):
-        return (AutoEncoderParams(z_channels=48, downsample_spatial=16, downsample_temporal=4),)
-
-
 class LanceModelArgs:
     CATEGORY = "Lance/config"
     RETURN_TYPES = ("MODEL_ARGS",)
