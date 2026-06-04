@@ -1,3 +1,5 @@
+import tempfile
+import json
 from torch.utils.data import DataLoader
 
 from ..config.config_factory import DataArguments, InferenceArguments, ModelArguments
@@ -16,9 +18,7 @@ class LancePrompt:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "data_args": ("DATA_ARGS",),
-                "model_args": ("MODEL_ARGS",),
-                "inference_args": ("INFERENCE_ARGS",),
+                "prompt": ("STRING", {"multiline": True}),
                 "data_config": ("DATA_CONFIG",),
                 "tokenizer": ("TOKENIZER",),
                 "new_token_ids": ("NEW_TOKEN_IDS",),
@@ -27,23 +27,21 @@ class LancePrompt:
 
     def load(
         self,
-        data_args: DataArguments,
-        model_args: ModelArguments,
-        inference_args: InferenceArguments,
+        prompt: str,
         data_config: DataConfig,
         tokenizer: Qwen2Tokenizer,
         new_token_ids: dict,
     ):
-        # with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
-        #     json.dump({"0": prompt}, f)
-        #     prompt_path = f.name
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            f.write(json.dumps({"index": 0, "data": prompt}))
+            prompt_path = f.name
 
         dataset = ValidationDataset(
-            jsonl_path=data_args.val_dataset_config_file,
+            jsonl_path=prompt_path,
             tokenizer=tokenizer,
-            data_args=data_args,
-            model_args=model_args,
-            training_args=inference_args,
+            data_args=None,
+            model_args=None,
+            training_args=None,
             new_token_ids=new_token_ids,
             dataset_config=data_config,
         )
