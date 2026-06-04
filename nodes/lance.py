@@ -11,6 +11,10 @@ from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
 from comfy.text_encoders.qwen_vl import Qwen2VLVisionTransformer
 from ..data.data_utils import add_special_tokens
 from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
+from ..constants import CKPT_ROOT_DIR
+import os
+import os.path as osp
+
 
 class LanceLoader:
     CATEGORY = "Lance"
@@ -19,8 +23,10 @@ class LanceLoader:
 
     @classmethod
     def INPUT_TYPES(cls):
+        dirs = sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d))) if osp.isdir(CKPT_ROOT_DIR) else []
         return {
             "required": {
+                "ckpt_dir": (dirs, {"default": "Lance_3B"}),
                 "model_args": ("MODEL_ARGS",),
                 "inference_args": ("INFERENCE_ARGS",),
                 "vae_config": ("VAE_CONFIG",),
@@ -31,9 +37,17 @@ class LanceLoader:
                 "vit_config": ("VIT_CONFIG",),
             },
         }
+    
+    @classmethod
+    def VALIDATE_INPUTS(cls, ckpt_dir: str):
+        full = osp.join(CKPT_ROOT_DIR, ckpt_dir)
+        if not osp.isfile(osp.join(full, "model.safetensors")):
+            return f"model.safetensors not found in {full}"
+        return True
 
     def load(
         self, 
+        ckpt_dir: str,
         model_args: ModelArguments,
         inference_args: InferenceArguments,
         vae_config: AutoEncoderParams,
@@ -41,8 +55,7 @@ class LanceLoader:
         vit: dict=None,
         vit_config: Qwen2_5_VLVisionConfig=None,
     ):
-        ckpt_path = osp.join(model_args.model_path, "model.safetensors")
-        ckpt_path = folder_paths.get_full_path_or_raise("diffusion_models", ckpt_path)
+        ckpt_path = osp.join(ckpt_dir, "model.safetensors")
 
         language_model: Qwen2ForCausalLM = qwen2_causal_lm['module']
         vit_model: Qwen2VLVisionTransformer = vit['module'] if vit is not None else None

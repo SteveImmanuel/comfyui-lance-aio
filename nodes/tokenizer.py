@@ -1,5 +1,8 @@
 from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
 from ..config.config_factory import ModelArguments
+from ..constants import CKPT_ROOT_DIR
+import os
+import os.path as osp
 
 
 class LanceTokenizerLoader:
@@ -9,12 +12,13 @@ class LanceTokenizerLoader:
 
     @classmethod
     def INPUT_TYPES(cls):
+        dirs = sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d))) if osp.isdir(CKPT_ROOT_DIR) else []
         return {
             "required": {
-                "model_args": ("MODEL_ARGS",),
+                "ckpt_dir": (dirs, {"default": "Lance_3B"}),
             }
         }
 
-    def load(self, model_args: ModelArguments):
-        tokenizer = Qwen2Tokenizer.from_pretrained(model_args.model_path)
+    def load(self, ckpt_dir: str):
+        tokenizer = Qwen2Tokenizer.from_pretrained(osp.join(CKPT_ROOT_DIR, ckpt_dir))
         return (tokenizer,)

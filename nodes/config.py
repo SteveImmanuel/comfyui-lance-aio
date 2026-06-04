@@ -1,7 +1,8 @@
 from ..config.config_factory import ModelArguments, DataArguments, InferenceArguments
 from ..data.dataset_base import DataConfig
 from ..common.utils.misc import tuple_mul, AutoEncoderParams
-
+import folder_paths
+import os.path as osp
 
 def _parse_ints(s):
     return tuple(int(x) for x in s.replace(" ", "").split(","))
@@ -37,6 +38,7 @@ class LanceModelArgs:
                 "max_latent_size": ("INT", {"default": 64, "min": 1, "max": 1024}),
                 "max_num_frames": ("INT", {"default": 1, "min": 1, "max": 1024}),
                 "vit_type": ("STRING", {"default": "qwen_2_5_vl_original"}),
+                "vit_path": ("STRING", {"default": ""}),
                 "vit_patch_size": ("INT", {"default": 14, "min": 1, "max": 64}),
                 "vit_max_num_patch_per_side": ("INT", {"default": 70, "min": 1, "max": 1024}),
                 "cfg_text_scale": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 30.0, "step": 0.1}),
@@ -44,7 +46,8 @@ class LanceModelArgs:
         }
 
     def build(self, latent_patch_size, **kw):
-        return (ModelArguments(latent_patch_size=_parse_ints(latent_patch_size), **kw),)
+        args = ModelArguments(latent_patch_size=_parse_ints(latent_patch_size), **kw)
+        return (args,)
 
 
 class LanceInferenceArgs:

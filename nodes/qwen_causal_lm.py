@@ -10,6 +10,8 @@ from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
 from ..config.config_factory import ModelArguments, InferenceArguments
 
 import comfy.ops
+from ..constants import CKPT_ROOT_DIR
+import os
 
 def _swap_to_manual_cast(module: torch.nn.Module):
     for name, child in list(module.named_children()):
@@ -49,17 +51,27 @@ class Qwen2CausalLMLoader:
     
     @classmethod
     def INPUT_TYPES(cls):
+        dirs = sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d))) if osp.isdir(CKPT_ROOT_DIR) else []
         return {
             "required": {
+                "ckpt_dir": (dirs, {"default": "Lance_3B"}),
                 "model_args": ("MODEL_ARGS",),
                 "inference_args": ("INFERENCE_ARGS",),
                 "low_memory": ("BOOLEAN", {"default": False}),
             }
         }
 
-    def load(self, model_args: ModelArguments, inference_args: InferenceArguments, low_memory: bool):
-        ckpt_path = osp.join(model_args.model_path, "model.safetensors")
-        llm_config: Qwen2Config = Qwen2Config.from_json_file(osp.join(model_args.model_path, "llm_config.json"))
+    @classmethod
+    def VALIDATE_INPUTS(cls, ckpt_dir: str):
+        full = osp.join(CKPT_ROOT_DIR, ckpt_dir)
+        for f in ("model.safetensors", "llm_config.json"):
+            if not osp.isfile(osp.join(full, f)):
+                return f"{f} not found in {full}"
+        return True
+
+    def load(self, ckpt_dir: str, model_args: ModelArguments, inference_args: InferenceArguments, low_memory: bool):
+        ckpt_path = osp.join(ckpt_dir, "model.safetensors")
+        llm_config: Qwen2Config = Qwen2Config.from_json_file(osp.join(ckpt_dir, "llm_config.json"))
 
         llm_config.layer_module = model_args.layer_module
         llm_config.qk_norm = model_args.llm_qk_norm

@@ -1,3 +1,4 @@
+import os
 import os.path as osp
 import folder_paths
 import comfy.model_management as mm
@@ -10,24 +11,34 @@ from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVi
 from comfy.text_encoders.qwen_vl import Qwen2VLVisionTransformer
 import os.path as osp
 from ..config.config_factory import ModelArguments
-
+from ..constants import CKPT_ROOT_DIR
 
 class VitLoader:
     CATEGORY = "Lance"
     RETURN_TYPES = ("VIT", "VIT_CONFIG")
     FUNCTION = "load"
-    
+
     @classmethod
     def INPUT_TYPES(cls):
+        dirs = sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d))) if osp.isdir(CKPT_ROOT_DIR) else []
         return {
             "required": {
-                "model_args": ("MODEL_ARGS",),
+                "ckpt_dir": (dirs, {"default": "Qwen2.5-VL-ViT"}),
             }
         }
 
-    def load(self, model_args: ModelArguments):
-        ckpt_path = osp.join(model_args.vit_path, "vit.safetensors")
-        vit_config = Qwen2_5_VLVisionConfig.from_pretrained(model_args.vit_path)
+    @classmethod
+    def VALIDATE_INPUTS(cls, ckpt_dir: str):
+        full = osp.join(CKPT_ROOT_DIR, ckpt_dir)
+        for f in ("vit.safetensors", "config.json"):
+            if not osp.isfile(osp.join(full, f)):
+                return f"{f} not found in {full}"
+        return True
+
+    def load(self, ckpt_dir: str):
+        ckpt_dir = osp.join(CKPT_ROOT_DIR, ckpt_dir)
+        ckpt_path = osp.join(ckpt_dir, "vit.safetensors")
+        vit_config = Qwen2_5_VLVisionConfig.from_pretrained(ckpt_dir)
         
         vit = Qwen2VLVisionTransformer(
             hidden_size=vit_config.hidden_size,
