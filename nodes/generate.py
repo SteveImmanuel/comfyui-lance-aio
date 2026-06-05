@@ -1,4 +1,5 @@
-import comfy.latent_formats
+import gc
+
 import comfy.model_management as mm
 import torch
 from torch.utils.data import DataLoader
@@ -7,18 +8,17 @@ from ..common.val.utils import make_padded_latent
 from ..config.config_factory import InferenceArguments, ModelArguments
 from ..constants import (
     GENERATION_TASKS,
+    LATENT_FORMAT,
     MAX_GENERATION_LENGTH,
     TASK_I2V,
     TASK_IMAGE_EDIT,
     TASK_VIDEO_EDIT,
     UNDERSTANDING_TASKS,
-    LATENT_FORMAT,
 )
 from ..data.dataset_base import SimpleCustomBatch
 from ..modeling.lance.lance import Lance
 from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
 from .vae import ComfyVAEAdapter
-import gc
 
 
 def _clean_memory(*objects):
@@ -153,7 +153,9 @@ class LanceGenerate:
 
                     frames = []
                     for latent_ in target_latents:
-                        z = LATENT_FORMAT.process_out(latent_.unsqueeze(0).movedim(-1, 1))  # [t,h,w,c] -> [1,c,t,h,w], *std+mean
+                        z = LATENT_FORMAT.process_out(
+                            latent_.unsqueeze(0).movedim(-1, 1)
+                        )  # [t,h,w,c] -> [1,c,t,h,w], *std+mean
                         img = vae.decode(z)  # [B,T,H,W,C] float 0..1
                         if img.ndim == 5:
                             img = img.reshape(-1, *img.shape[-3:])

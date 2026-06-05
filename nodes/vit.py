@@ -1,5 +1,4 @@
 import logging
-import os
 import os.path as osp
 
 import comfy.model_management as mm
@@ -29,7 +28,6 @@ class VitLoader:
                 "ckpt_dir": ("STRING",),
             }
         }
-
 
     def load(self, ckpt_dir: str):
         ckpt_path = osp.join(ckpt_dir, "vit.safetensors")

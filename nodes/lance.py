@@ -1,5 +1,4 @@
 import logging
-import os
 import os.path as osp
 
 import comfy.utils
@@ -33,7 +32,6 @@ class LanceLoader:
                 "vit_config": ("VIT_CONFIG",),
             },
         }
-
 
     def load(
         self,

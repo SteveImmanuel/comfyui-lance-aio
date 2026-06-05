@@ -1,6 +1,3 @@
-import os
-import os.path as osp
-
 import comfy.utils
 import torch
 from comfy.sd import VAE
@@ -21,7 +18,6 @@ class WANVAELoader:
             }
         }
 
-
     def load(self, ckpt_path):
         sd = comfy.utils.load_torch_file(ckpt_path)
         vae = VAE(sd=sd)
@@ -32,7 +28,7 @@ class WANVAELoader:
 class ComfyVAEAdapter:
     def __init__(self, vae: VAE):
         self.vae = vae
-        self.vae.crop_input = False # fix rounding dim
+        self.vae.crop_input = False  # fix rounding dim
 
     @torch.no_grad()
     def vae_encode(self, samples: torch.Tensor, **kwargs):

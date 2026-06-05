@@ -1,5 +1,4 @@
 import logging
-import os
 import os.path as osp
 
 import comfy.model_management as mm
@@ -58,7 +57,6 @@ class Qwen2CausalLMLoader:
                 "low_memory": ("BOOLEAN", {"default": False}),
             }
         }
-
 
     def load(self, ckpt_dir: str, model_args: ModelArguments, inference_args: InferenceArguments, low_memory: bool):
         ckpt_path = osp.join(ckpt_dir, "model.safetensors")

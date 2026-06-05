@@ -1,10 +1,13 @@
-from ..common.utils.misc import tuple_mul
-from ..config.config_factory import InferenceArguments, ModelArguments
-from ..constants import ALL_TASKS, RESOLUTION_CONFIGS, VAE_CONFIG, IMAGE_OUTPUT_TASKS
-from ..data.dataset_base import DataConfig
 import os
 import os.path as osp
+
 import folder_paths
+
+from ..common.utils.misc import tuple_mul
+from ..config.config_factory import InferenceArguments, ModelArguments
+from ..constants import ALL_TASKS, IMAGE_OUTPUT_TASKS, RESOLUTION_CONFIGS, VAE_CONFIG
+from ..data.dataset_base import DataConfig
+
 
 class LanceArgs:
     CATEGORY = "Lance/config"
@@ -94,5 +97,5 @@ class LanceArgs:
             lance_ckpt_dir = osp.join(folder_paths.models_dir, ckpt_root_dir, "Lance_3B_Video")
         vit_ckpt_dir = osp.join(folder_paths.models_dir, ckpt_root_dir, "Qwen2.5-VL-ViT")
         wan_ckpt_path = osp.join(folder_paths.models_dir, ckpt_root_dir, "Wan2.2_VAE.pth")
-        
+
         return (model_args, inference_args, data_cfg, lance_ckpt_dir, vit_ckpt_dir, wan_ckpt_path)
