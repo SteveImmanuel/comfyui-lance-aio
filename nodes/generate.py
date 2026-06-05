@@ -1,3 +1,4 @@
+import comfy.latent_formats
 import comfy.model_management as mm
 import torch
 from torch.utils.data import DataLoader
@@ -71,6 +72,7 @@ class LanceGenerate:
             "optional": {
                 "vit": ("VIT",),
                 "wan_vae": ("WAN_VAE",),
+                "vae": ("VAE",),
             },
         }
 
@@ -85,16 +87,10 @@ class LanceGenerate:
         qwen2_causal_lm: dict,
         vit: dict = None,
         wan_vae: dict = None,
+        vae=None,
     ):
         device = mm.get_torch_device()
 
-        patchers = [qwen2_causal_lm["patcher"]]
-        if vit:
-            patchers.append(vit["patcher"])
-        if wan_vae:
-            patchers.append(wan_vae["patcher"])
-
-        mm.load_models_gpu(patchers)
         lance.time_embedder.to(device)
         lance.vae2llm.to(device)
         lance.llm2vae.to(device)
@@ -103,13 +99,26 @@ class LanceGenerate:
         batch: SimpleCustomBatch = next(iter(data_loader))
         data_dict: dict = batch.cuda(device).to_dict()
         image_token_id = lance.language_model.config.video_token_id
-        wan_vae_module: WanVideoVAE = wan_vae["module"]
+        wan_vae_module: WanVideoVAE = wan_vae["module"] if wan_vae is not None else None
 
         with torch.no_grad(), torch.amp.autocast("cuda", enabled=True, dtype=torch.bfloat16):
+            # encode phase: only the VAE runs
             if "padded_videos" in data_dict.keys():
+                mm.load_models_gpu([wan_vae["patcher"]])
                 data_dict["padded_latent"] = make_padded_latent(
                     data_dict["padded_videos"], data_dict["vae_data_mode"], wan_vae_module
                 )
+
+            # denoise phase: stage LLM(+ViT), reserving headroom for the KV cache + per-step activations
+            llm_cfg = lance.language_model.config
+            n_tokens = int(sum(data_dict["sample_lens"]))
+            head_dim = llm_cfg.hidden_size // llm_cfg.num_attention_heads
+            kv_bytes = n_tokens * llm_cfg.num_hidden_layers * 2 * llm_cfg.num_key_value_heads * head_dim * 2
+            act_bytes = n_tokens * llm_cfg.hidden_size * 2 * 64  # ~64 live bf16 tensors per token, empirical fudge
+            patchers = [qwen2_causal_lm["patcher"]]
+            if vit:
+                patchers.append(vit["patcher"])
+            mm.load_models_gpu(patchers, memory_required=kv_bytes + act_bytes)
 
             if inference_args.task in GENERATION_TASKS:
                 save_fps = int(data_dict.get("save_fps", 12))
@@ -159,16 +168,48 @@ class LanceGenerate:
                 else:
                     denoise_latent, captions, padded_videos, index = lance.validation_gen(**params)
 
+                print('cleaning the gpu vram')
+                # decode phase: drop denoise-phase refs so comfy can reclaim them, then re-stage the VAE
+                del params, padded_videos, batch
+                data_dict.clear()
+                _clean_memory()
+                first_latent = denoise_latent[0][0]  # [t, h, w, c]
+                decode_mem = 8000 * first_latent.shape[1] * first_latent.shape[2] * (16 * 16) * mm.dtype_size(torch.bfloat16)  # comfy's Wan2.2 estimate (sd.py:737)
+                # all-dynamic load requests skip eviction (free_memory's for_dynamic branch assumes
+                # on-demand yielding, which only holds for weights, not decode activations) —
+                # so explicitly evict staged LLM weights to make activation headroom first
+                # only the VAE is needed from here on — drop everything else for maximum headroom
+                mm.unload_all_models()
+                _clean_memory()
+                print(f"[Lance] free for decode: {mm.get_free_memory(device) / 2**30:.2f} GiB")
+                if vae is None:
+                    mm.load_models_gpu([wan_vae["patcher"]], memory_required=decode_mem)
+
                 # Decode.
+                print('decoding time')
                 for i_val, latent in enumerate(denoise_latent):
                     if inference_args.task in {TASK_I2V, TASK_IMAGE_EDIT, TASK_VIDEO_EDIT}:
                         target_latents = [latent[-1]]
                     else:
                         target_latents = latent
 
+                    if vae is not None:
+                        # comfy VAE path: un-normalize via Wan22 latent format, decode with
+                        # comfy's own staging + tiled-on-OOM fallback
+                        lf = comfy.latent_formats.Wan22()
+                        frames = []
+                        for latent_ in target_latents:
+                            z = lf.process_out(latent_.unsqueeze(0).movedim(-1, 1))  # [t,h,w,c] -> [1,c,t,h,w], *std+mean
+                            img = vae.decode(z)  # [B,T,H,W,C] float 0..1
+                            if img.ndim == 5:
+                                img = img.reshape(-1, *img.shape[-3:])
+                            frames.append(img.cpu())
+                        image = torch.cat(frames, dim=0)
+                        return (image,)
+
                     v_list = []
                     for latent_ in target_latents:
-                        v_list.append(wan_vae_module.vae_decode([latent_])[0])
+                        v_list.append(wan_vae_module.vae_decode([latent_])[0].cpu())
 
                     save_item_name = f"{index:06d}" if isinstance(index, int) else index
                     v_thwc = decode_video_tensor(
@@ -200,7 +241,7 @@ class LanceGenerate:
                     del v_list, v_thwc, latent, target_latents
                     _clean_memory()
 
-                del denoise_latent, captions, padded_videos, params
+                del denoise_latent, captions
                 _clean_memory()
 
             elif inference_args.task in UNDERSTANDING_TASKS:
