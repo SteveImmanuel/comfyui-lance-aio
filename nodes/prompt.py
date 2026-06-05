@@ -6,9 +6,33 @@ import torch
 from comfy_api.latest import Input
 from torch.utils.data import DataLoader
 
+from ..constants import UNDERSTANDING_TASKS
 from ..data.dataset_base import DataConfig, simple_custom_collate
 from ..data.datasets_custom import ValidationDataset
 from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
+
+
+def _media_record(prompt: str, media_path: str, dtype: str, task: str) -> dict:
+    if task in UNDERSTANDING_TASKS:
+        vision = "image" if dtype == "image" else "video"
+        payload = [f"Look at the {vision} carefully and answer the question.", prompt, "..."]
+        return {
+            "index": 0,
+            "data": {
+                "interleave_array": [media_path, payload],
+                "element_dtype_array": [dtype, "text"],
+                "istarget_in_interleave": [0, 1],
+            },
+        }
+
+    return {
+        "index": 0,
+        "data": {
+            "interleave_array": [prompt, media_path],
+            "element_dtype_array": ["text", dtype],
+            "istarget_in_interleave": [0, 0],
+        },
+    }
 
 
 def _write_records(records: list) -> str:
@@ -94,14 +118,7 @@ class LanceTextImagePrompt(LanceTextPrompt):
         new_token_ids: dict,
         image,
     ):
-        record = {
-            "index": 0,
-            "data": {
-                "interleave_array": [prompt, _save_image(image[0])],
-                "element_dtype_array": ["text", "image"],
-                "istarget_in_interleave": [0, 0],
-            },
-        }
+        record = _media_record(prompt, _save_image(image[0]), "image", data_config.task)
         prompt_path = _write_records([record])
         return (self._build_loader(prompt_path, data_config, tokenizer, new_token_ids),)
 
@@ -121,13 +138,6 @@ class LanceTextVideoPrompt(LanceTextPrompt):
         new_token_ids: dict,
         video,
     ):
-        record = {
-            "index": 0,
-            "data": {
-                "interleave_array": [prompt, _save_video(video)],
-                "element_dtype_array": ["text", "video"],
-                "istarget_in_interleave": [0, 0],
-            },
-        }
+        record = _media_record(prompt, _save_video(video), "video", data_config.task)
         prompt_path = _write_records([record])
         return (self._build_loader(prompt_path, data_config, tokenizer, new_token_ids),)
