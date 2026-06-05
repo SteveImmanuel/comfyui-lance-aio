@@ -31,12 +31,14 @@ class LanceArgs:
                 "validation_timestep_shift": ("FLOAT", {"default": 3.5, "min": 0.0, "max": 10.0, "step": 0.1}),
                 "cfg_text_scale": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 30.0, "step": 0.1}),
                 "ckpt_root_dir": (dirs, {"default": "lance"}),
+                "data_seed": ("INT", {"default": 42}),
             }
         }
 
     def build(self, **kw):
         cfg_text_scale = kw.pop("cfg_text_scale")
         ckpt_root_dir = kw.pop("ckpt_root_dir")
+        data_seed = kw.pop("data_seed")
 
         inference_args = InferenceArguments(
             apply_qwen_2_5_vl_pos_emb=True,
@@ -46,6 +48,8 @@ class LanceArgs:
             visual_und=True,
             copy_init_moe=True,
             enhance_prompt=False,
+            validation_data_seed=data_seed,
+            validation_noise_seed=data_seed,
             **kw,
         )
 
