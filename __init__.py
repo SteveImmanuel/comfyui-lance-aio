@@ -4,7 +4,6 @@ __version__ = "0.1.0"
 
 from .nodes.config import (
     ApplyDefaultArgs,
-    LanceDataArgs,
     LanceDataConfig,
     LanceInferenceArgs,
     LanceModelArgs,
@@ -27,7 +26,6 @@ NODE_CLASS_MAPPINGS = {
     "Lance Tokenizer Loader": LanceTokenizerLoader,
     "Lance Model Args": LanceModelArgs,
     "Lance Inference Args": LanceInferenceArgs,
-    "Lance Data Args": LanceDataArgs,
     "Lance Apply Default Args": ApplyDefaultArgs,
     "Lance Data Config": LanceDataConfig,
     "Lance Generate": LanceGenerate,

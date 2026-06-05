@@ -112,27 +112,10 @@ class LanceInferenceArgs:
         return (InferenceArguments(**kw),)
 
 
-class LanceDataArgs:
-    CATEGORY = "Lance/config"
-    RETURN_TYPES = ("DATA_ARGS",)
-    FUNCTION = "build"
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "val_dataset_config_file": ("STRING", {"default": ""}),
-            }
-        }
-
-    def build(self, val_dataset_config_file):
-        return (DataArguments(val_dataset_config_file=val_dataset_config_file or None),)
-
-
 class ApplyDefaultArgs:
     CATEGORY = "Lance/config"
-    RETURN_TYPES = ("DATA_ARGS", "MODEL_ARGS", "INFERENCE_ARGS")
-    RETURN_NAMES = ("data_args", "model_args", "inference_args")
+    RETURN_TYPES = ("MODEL_ARGS", "INFERENCE_ARGS")
+    RETURN_NAMES = ("model_args", "inference_args")
     FUNCTION = "build"
     # OUTPUT_NODE = True
 
@@ -140,21 +123,17 @@ class ApplyDefaultArgs:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "data_args": ("DATA_ARGS",),
                 "model_args": ("MODEL_ARGS",),
                 "inference_args": ("INFERENCE_ARGS",),
             }
         }
 
-    def build(self, data_args: DataArguments, model_args: ModelArguments, inference_args: InferenceArguments):
+    def build(self, model_args: ModelArguments, inference_args: InferenceArguments):
         if inference_args.task not in TASK_DEFAULT_CONFIGS:
             raise ValueError(f"Unsupported inference task: {inference_args.task}")
 
         task_config = TASK_DEFAULT_CONFIGS[inference_args.task]
         defaults = InferenceArguments()
-
-        if not data_args.val_dataset_config_file and task_config.get("example_json"):
-            data_args.val_dataset_config_file = task_config["example_json"]
 
         if inference_args.save_path_gen == defaults.save_path_gen and task_config.get("save_path_prefix"):
             inference_args.save_path_gen = task_config["save_path_prefix"]
@@ -179,7 +158,7 @@ class ApplyDefaultArgs:
         # print(inference_args)
         # print()
 
-        return (data_args, model_args, inference_args)
+        return (model_args, inference_args)
 
 
 class LanceDataConfig:
@@ -192,7 +171,6 @@ class LanceDataConfig:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "data_args": ("DATA_ARGS",),
                 "model_args": ("MODEL_ARGS",),
                 "inference_args": ("INFERENCE_ARGS",),
                 "vae_config": ("VAE_CONFIG",),
@@ -201,12 +179,11 @@ class LanceDataConfig:
 
     def build(
         self,
-        data_args: DataArguments,
         model_args: ModelArguments,
         inference_args: InferenceArguments,
         vae_config: AutoEncoderParams,
     ):
-        cfg = DataConfig.from_yaml(data_args.val_dataset_config_file)
+        cfg = DataConfig()
 
         if inference_args.visual_und:
             cfg.vit_patch_size = model_args.vit_patch_size
