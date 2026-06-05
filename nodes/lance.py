@@ -7,7 +7,7 @@ from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVi
 
 from ..common.utils.misc import AutoEncoderParams
 from ..config.config_factory import InferenceArguments, ModelArguments
-from ..constants import CKPT_ROOT_DIR
+from ..constants import CKPT_ROOT_DIR, VAE_CONFIG
 from ..data.data_utils import add_special_tokens
 from ..modeling.lance.lance import Lance, LanceConfig
 from ..modeling.lance.qwen2_navit import Qwen2ForCausalLM
@@ -32,7 +32,6 @@ class LanceLoader:
                 "ckpt_dir": (dirs, {"default": "Lance_3B"}),
                 "model_args": ("MODEL_ARGS",),
                 "inference_args": ("INFERENCE_ARGS",),
-                "vae_config": ("VAE_CONFIG",),
                 "qwen2_causal_lm": ("QWEN_2_CAUSAL_LM",),
             },
             "optional": {
@@ -53,7 +52,6 @@ class LanceLoader:
         ckpt_dir: str,
         model_args: ModelArguments,
         inference_args: InferenceArguments,
-        vae_config: AutoEncoderParams,
         qwen2_causal_lm: dict,
         vit: dict = None,
         vit_config: Qwen2_5_VLVisionConfig = None,
@@ -69,7 +67,7 @@ class LanceLoader:
             visual_und=inference_args.visual_und,
             llm_config=llm_config,
             vit_config=vit_config if inference_args.visual_und else None,
-            vae_config=vae_config if inference_args.visual_gen else None,
+            vae_config=VAE_CONFIG if inference_args.visual_gen else None,
             latent_patch_size=model_args.latent_patch_size,
             max_num_frames=model_args.max_num_frames,
             max_latent_size=model_args.max_latent_size,
@@ -107,7 +105,6 @@ class LanceConfigure:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model_args": ("MODEL_ARGS",),
                 "lance": ("LANCE",),
                 "tokenizer": ("TOKENIZER",),
             },
@@ -115,7 +112,6 @@ class LanceConfigure:
 
     def configure(
         self,
-        model_args: ModelArguments,
         lance: Lance,
         tokenizer: Qwen2Tokenizer,
     ):
@@ -130,17 +126,10 @@ class LanceConfigure:
         new_token_ids.update({"image_token_id": image_token_id})
         lance.update_tokenizer(tokenizer=tokenizer)
 
-        if model_args.tie_word_embeddings:
-            lance.language_model.untie_lm_head()
-            lance.language_model.copy_new_token_rows_to_lm_head(num_new_tokens)
-
-            model_args.tie_word_embeddings = False
-            lance.config.llm_config.tie_word_embeddings = False
-        else:
-            assert (
-                lance.language_model.get_input_embeddings().weight.data.data_ptr()
-                != lance.language_model.get_output_embeddings().weight.data.data_ptr()
-            ), "tie_word_embeddings conflict"
+        assert (
+            lance.language_model.get_input_embeddings().weight.data.data_ptr()
+            != lance.language_model.get_output_embeddings().weight.data.data_ptr()
+        ), "tie_word_embeddings conflict"
 
         lance.eval()
         return (lance, new_token_ids)

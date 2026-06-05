@@ -2,11 +2,7 @@ __author__ = """SteveImmanuel"""
 __email__ = "steveandreasimanuel@gmail.com"
 __version__ = "0.1.0"
 
-from .nodes.config import (
-    LanceDataConfig,
-    LanceInferenceArgs,
-    LanceModelArgs,
-)
+from .nodes.config import LanceArgs
 from .nodes.generate import LanceGenerate
 from .nodes.lance import LanceConfigure, LanceLoader
 from .nodes.prompt import LancePrompt
@@ -23,9 +19,7 @@ NODE_CLASS_MAPPINGS = {
     "Lance Configure": LanceConfigure,
     "Lance Prompt": LancePrompt,
     "Lance Tokenizer Loader": LanceTokenizerLoader,
-    "Lance Model Args": LanceModelArgs,
-    "Lance Inference Args": LanceInferenceArgs,
-    "Lance Data Config": LanceDataConfig,
+    "Lance Args": LanceArgs,
     "Lance Generate": LanceGenerate,
 }
 
