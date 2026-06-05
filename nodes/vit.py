@@ -13,6 +13,12 @@ from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVi
 from ..constants import CKPT_ROOT_DIR
 
 
+class LanceQwen2VLViT(Qwen2VLVisionTransformer):
+    # fix for incompatible func signature
+    def forward(self, hidden_states, grid_thw, **kwargs):
+        return super().forward(pixel_values=hidden_states, image_grid_thw=grid_thw)
+
+
 class VitLoader:
     CATEGORY = "Lance"
     RETURN_TYPES = ("VIT", "VIT_CONFIG")
@@ -40,7 +46,7 @@ class VitLoader:
         ckpt_path = osp.join(ckpt_dir, "vit.safetensors")
         vit_config = Qwen2_5_VLVisionConfig.from_pretrained(ckpt_dir)
 
-        vit = Qwen2VLVisionTransformer(
+        vit = LanceQwen2VLViT(
             hidden_size=vit_config.hidden_size,
             output_hidden_size=vit_config.out_hidden_size,
             intermediate_size=vit_config.intermediate_size,

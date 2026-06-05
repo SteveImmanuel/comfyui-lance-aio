@@ -6,7 +6,7 @@ from ..data.dataset_base import DataConfig
 
 class LanceArgs:
     CATEGORY = "Lance/config"
-    RETURN_TYPES = ("INFERENCE_ARGS", "MODEL_ARGS", "DATA_CONFIG")
+    RETURN_TYPES = ("MODEL_ARGS", "INFERENCE_ARGS", "DATA_CONFIG")
     FUNCTION = "build"
 
     @classmethod
@@ -82,4 +82,4 @@ class LanceArgs:
         data_cfg.enhance_prompt = inference_args.enhance_prompt
         data_cfg.system_prompt_type = inference_args.system_prompt_type
 
-        return (inference_args, model_args, data_cfg)
+        return (model_args, inference_args, data_cfg)

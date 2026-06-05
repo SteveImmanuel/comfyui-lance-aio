@@ -12,6 +12,7 @@ from ..constants import (
     TASK_IMAGE_EDIT,
     TASK_VIDEO_EDIT,
     UNDERSTANDING_TASKS,
+    LATENT_FORMAT,
 )
 from ..data.dataset_base import SimpleCustomBatch
 from ..modeling.lance.lance import Lance
@@ -40,10 +41,6 @@ class LanceGenerate:
     FUNCTION = "generate"
     RETURN_TYPES = ("IMAGE",)
     OUTPUT_NODE = True
-
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        return float("NaN")  # NaN != NaN → always considered changed
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -87,22 +84,14 @@ class LanceGenerate:
         image_token_id = lance.language_model.config.video_token_id
 
         with torch.no_grad(), torch.amp.autocast("cuda", enabled=True, dtype=torch.bfloat16):
-            # encode phase: comfy's VAE.encode stages itself (and tiles on OOM)
             if "padded_videos" in data_dict.keys():
                 data_dict["padded_latent"] = make_padded_latent(
                     data_dict["padded_videos"], data_dict["vae_data_mode"], ComfyVAEAdapter(vae)
                 )
 
-            # # denoise phase: stage LLM(+ViT), reserving headroom for the KV cache + per-step activations
-            # llm_cfg = lance.language_model.config
-            # n_tokens = int(sum(data_dict["sample_lens"]))
-            # head_dim = llm_cfg.hidden_size // llm_cfg.num_attention_heads
-            # kv_bytes = n_tokens * llm_cfg.num_hidden_layers * 2 * llm_cfg.num_key_value_heads * head_dim * 2
-            # act_bytes = n_tokens * llm_cfg.hidden_size * 2 * 64  # ~64 live bf16 tensors per token, empirical fudge
             patchers = [qwen2_causal_lm["patcher"]]
             if vit:
                 patchers.append(vit["patcher"])
-            # mm.load_models_gpu(patchers, memory_required=kv_bytes + act_bytes)
             mm.load_models_gpu(patchers)
 
             if inference_args.task in GENERATION_TASKS:
@@ -137,16 +126,14 @@ class LanceGenerate:
                     "vit_video_grid_thw": data_dict.get("vit_video_grid_thw", None),
                     "vae_video_grid_thw": data_dict["vae_video_grid_thw"],
                     "video_grid_thw": data_dict.get("video_grid_thw", None),
-                    "caption": data_dict.get(
-                        "caption", None
-                    ),  # The dataset uses "caption" as the default caption field.
+                    "caption": data_dict.get("caption", None),
                     "sample_task": data_dict["sample_task"],
                     "sample_modality": data_dict["sample_modality"],
                     "cfg_type": inference_args.cfg_type,
                     "cfg_uncond_token_id": inference_args.cfg_uncond_token_id,
                     "index": data_dict["index"],
-                    # "val_padded_videos": data_dict["padded_videos"] if save_source_video else None,
                 }
+
                 if inference_args.use_KVcache:
                     denoise_latent, captions, padded_videos, index = lance.validation_gen_KVcache(**params)
                 else:
@@ -158,10 +145,7 @@ class LanceGenerate:
                 mm.unload_all_models()
                 _clean_memory()
 
-                # comfy VAE path: un-normalize via Wan22 latent format, decode with
-                # comfy's own staging + tiled-on-OOM fallback
-                lf = comfy.latent_formats.Wan22()
-                for i_val, latent in enumerate(denoise_latent):
+                for _, latent in enumerate(denoise_latent):
                     if inference_args.task in {TASK_I2V, TASK_IMAGE_EDIT, TASK_VIDEO_EDIT}:
                         target_latents = [latent[-1]]
                     else:
@@ -169,11 +153,12 @@ class LanceGenerate:
 
                     frames = []
                     for latent_ in target_latents:
-                        z = lf.process_out(latent_.unsqueeze(0).movedim(-1, 1))  # [t,h,w,c] -> [1,c,t,h,w], *std+mean
+                        z = LATENT_FORMAT.process_out(latent_.unsqueeze(0).movedim(-1, 1))  # [t,h,w,c] -> [1,c,t,h,w], *std+mean
                         img = vae.decode(z)  # [B,T,H,W,C] float 0..1
                         if img.ndim == 5:
                             img = img.reshape(-1, *img.shape[-3:])
                         frames.append(img.cpu())
+
                     image = torch.cat(frames, dim=0)
                     return (image,)
 
@@ -210,9 +195,8 @@ class LanceGenerate:
                 else:
                     generated_sequence_all, captions, index = lance.validation_video_to_text(**params)
 
-                for i_val, generated_sequence in enumerate(generated_sequence_all):
+                for _, generated_sequence in enumerate(generated_sequence_all):
                     cap = tokenizer.decode(generated_sequence[:, 0])
-                    # inference_args.prompt_data_dict[index] = f"target_caption: {captions} /// generated_caption: {cap} "
                     inference_args.prompt_data_dict[index] = f"{cap}"
                     del generated_sequence
 

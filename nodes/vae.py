@@ -38,6 +38,7 @@ class WANVAELoader:
 class ComfyVAEAdapter:
     def __init__(self, vae: VAE):
         self.vae = vae
+        self.vae.crop_input = False # fix rounding dim
 
     @torch.no_grad()
     def vae_encode(self, samples: torch.Tensor, **kwargs):
@@ -47,5 +48,5 @@ class ComfyVAEAdapter:
             pixels = (x.movedim(0, -1).unsqueeze(0) + 1.0) / 2.0  # -> [1,T,H,W,C] in [0,1]
             z = self.vae.encode(pixels)  # [1,48,t,h,w] raw; comfy stages + tiles on OOM
             z = LATENT_FORMAT.process_in(z)  # (z - mean) / std, matching Lance's normalization
-            latents.append(z.squeeze(0).movedim(0, -1))  # [t,h,w,48]
+            latents.append(z.squeeze(0).movedim(0, -1).to(device=x.device, dtype=self.vae.vae_dtype))  # [t,h,w,48]
         return latents
