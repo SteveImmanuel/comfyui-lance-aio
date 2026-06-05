@@ -3,7 +3,7 @@ __email__ = "steveandreasimanuel@gmail.com"
 __version__ = "0.1.0"
 
 from .nodes.config import LanceArgs
-from .nodes.generate import LanceGenerate
+from .nodes.generate import LanceGeneration, LanceUnderstanding
 from .nodes.lance import LanceConfigure, LanceLoader
 from .nodes.prompt import LanceTextImagePrompt, LanceTextPrompt, LanceTextVideoPrompt
 from .nodes.qwen_causal_lm import Qwen2CausalLMLoader
@@ -22,7 +22,8 @@ NODE_CLASS_MAPPINGS = {
     "Lance Text Video Prompt": LanceTextVideoPrompt,
     "Lance Tokenizer Loader": LanceTokenizerLoader,
     "Lance Args": LanceArgs,
-    "Lance Generate": LanceGenerate,
+    "Lance Generation": LanceGeneration,
+    "Lance Understanding": LanceUnderstanding,
 }
 
 
