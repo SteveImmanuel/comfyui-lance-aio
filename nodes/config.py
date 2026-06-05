@@ -1,16 +1,20 @@
 from ..common.utils.misc import tuple_mul
 from ..config.config_factory import InferenceArguments, ModelArguments
-from ..constants import ALL_TASKS, RESOLUTION_CONFIGS, VAE_CONFIG
+from ..constants import ALL_TASKS, RESOLUTION_CONFIGS, VAE_CONFIG, IMAGE_OUTPUT_TASKS
 from ..data.dataset_base import DataConfig
-
+import os
+import os.path as osp
+import folder_paths
 
 class LanceArgs:
     CATEGORY = "Lance/config"
-    RETURN_TYPES = ("MODEL_ARGS", "INFERENCE_ARGS", "DATA_CONFIG")
+    RETURN_TYPES = ("MODEL_ARGS", "INFERENCE_ARGS", "DATA_CONFIG", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("model_args", "inference_args", "data_config", "LANCE_CKPT_DIR", "VIT_CKPT_DIR", "WAN_CKPT_PATH")
     FUNCTION = "build"
 
     @classmethod
     def INPUT_TYPES(cls):
+        dirs = [x for x in os.listdir(folder_paths.models_dir) if osp.isdir(osp.join(folder_paths.models_dir, x))]
         return {
             "required": {
                 "task": (ALL_TASKS, {"default": "t2i"}),
@@ -23,11 +27,13 @@ class LanceArgs:
                 "validation_num_timesteps": ("INT", {"default": 30, "min": 1, "max": 200}),
                 "validation_timestep_shift": ("FLOAT", {"default": 3.5, "min": 0.0, "max": 10.0, "step": 0.1}),
                 "cfg_text_scale": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 30.0, "step": 0.1}),
+                "ckpt_root_dir": (dirs, {"default": "lance"}),
             }
         }
 
     def build(self, **kw):
         cfg_text_scale = kw.pop("cfg_text_scale")
+        ckpt_root_dir = kw.pop("ckpt_root_dir")
 
         inference_args = InferenceArguments(
             apply_qwen_2_5_vl_pos_emb=True,
@@ -76,10 +82,17 @@ class LanceArgs:
         data_cfg.H = inference_args.video_height
         data_cfg.W = inference_args.video_width
         data_cfg.task = inference_args.task
-        data_cfg.target_modality = "image" if inference_args.task in ("t2i", "x2t_image", "image_edit") else "video"
+        data_cfg.target_modality = "image" if inference_args.task in IMAGE_OUTPUT_TASKS else "video"
         data_cfg.resolution = inference_args.resolution
         data_cfg.text_template = inference_args.text_template
         data_cfg.enhance_prompt = inference_args.enhance_prompt
         data_cfg.system_prompt_type = inference_args.system_prompt_type
 
-        return (model_args, inference_args, data_cfg)
+        if inference_args.task in IMAGE_OUTPUT_TASKS:
+            lance_ckpt_dir = osp.join(folder_paths.models_dir, ckpt_root_dir, "Lance_3B")
+        else:
+            lance_ckpt_dir = osp.join(folder_paths.models_dir, ckpt_root_dir, "Lance_3B_Video")
+        vit_ckpt_dir = osp.join(folder_paths.models_dir, ckpt_root_dir, "Qwen2.5-VL-ViT")
+        wan_ckpt_path = osp.join(folder_paths.models_dir, ckpt_root_dir, "Wan2.2_VAE.pth")
+        
+        return (model_args, inference_args, data_cfg, lance_ckpt_dir, vit_ckpt_dir, wan_ckpt_path)

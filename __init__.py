@@ -5,7 +5,7 @@ __version__ = "0.1.0"
 from .nodes.config import LanceArgs
 from .nodes.generate import LanceGenerate
 from .nodes.lance import LanceConfigure, LanceLoader
-from .nodes.prompt import LancePrompt
+from .nodes.prompt import LanceTextImagePrompt, LanceTextPrompt, LanceTextVideoPrompt
 from .nodes.qwen_causal_lm import Qwen2CausalLMLoader
 from .nodes.tokenizer import LanceTokenizerLoader
 from .nodes.vae import WANVAELoader
@@ -17,7 +17,9 @@ NODE_CLASS_MAPPINGS = {
     "WAN VAE Loader": WANVAELoader,
     "Lance Loader": LanceLoader,
     "Lance Configure": LanceConfigure,
-    "Lance Prompt": LancePrompt,
+    "Lance Text Prompt": LanceTextPrompt,
+    "Lance Text Image Prompt": LanceTextImagePrompt,
+    "Lance Text Video Prompt": LanceTextVideoPrompt,
     "Lance Tokenizer Loader": LanceTokenizerLoader,
     "Lance Args": LanceArgs,
     "Lance Generate": LanceGenerate,

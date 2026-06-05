@@ -5,7 +5,7 @@ import comfy.utils
 import torch
 from comfy.sd import VAE
 
-from ..constants import CKPT_ROOT_DIR, LATENT_FORMAT
+from ..constants import LATENT_FORMAT
 
 
 class WANVAELoader:
@@ -15,21 +15,15 @@ class WANVAELoader:
 
     @classmethod
     def INPUT_TYPES(cls):
-        paths = [x for x in os.listdir(CKPT_ROOT_DIR) if x.endswith(".pth")]
         return {
             "required": {
-                "ckpt_path": (paths, {"default": "Wan2.2_VAE.pth"}),
+                "ckpt_path": ("STRING",),
             }
         }
 
-    @classmethod
-    def VALIDATE_INPUTS(cls, ckpt_path):
-        if not osp.isfile(osp.join(CKPT_ROOT_DIR, ckpt_path)):
-            return f"{ckpt_path} not found in {CKPT_ROOT_DIR}"
-        return True
 
     def load(self, ckpt_path):
-        sd = comfy.utils.load_torch_file(osp.join(CKPT_ROOT_DIR, ckpt_path))
+        sd = comfy.utils.load_torch_file(ckpt_path)
         vae = VAE(sd=sd)
         vae.throw_exception_if_invalid()
         return (vae,)

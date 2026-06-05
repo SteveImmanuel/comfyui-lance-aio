@@ -18,6 +18,7 @@ from ..data.dataset_base import SimpleCustomBatch
 from ..modeling.lance.lance import Lance
 from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
 from .vae import ComfyVAEAdapter
+import gc
 
 
 def _clean_memory(*objects):
@@ -27,7 +28,6 @@ def _clean_memory(*objects):
             obj.clear()
         elif isinstance(obj, (list, set)):
             obj.clear()
-    import gc
 
     gc.collect()
     if torch.cuda.is_available():

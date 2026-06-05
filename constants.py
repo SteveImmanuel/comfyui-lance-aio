@@ -1,11 +1,7 @@
-import os.path as osp
-
 import comfy.latent_formats
-import folder_paths
 
 from .common.utils.misc import AutoEncoderParams
 
-CKPT_ROOT_DIR = osp.join(folder_paths.models_dir, "lance")
 TASK_T2V = "t2v"
 TASK_T2I = "t2i"
 TASK_I2V = "i2v"
@@ -32,6 +28,11 @@ GENERATION_TASKS = {
 UNDERSTANDING_TASKS = {
     TASK_X2T_IMAGE,
     TASK_X2T_VIDEO,
+}
+IMAGE_OUTPUT_TASKS = {
+    TASK_T2I,
+    TASK_X2T_IMAGE,
+    TASK_IMAGE_EDIT
 }
 MAX_GENERATION_LENGTH = 256
 RESOLUTION_CONFIGS = ["video_192p", "video_360p", "video_480p", "image_256res", "image_512res", "image_768res"]
