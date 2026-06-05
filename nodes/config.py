@@ -7,46 +7,6 @@ def _parse_ints(s):
     return tuple(int(x) for x in s.replace(" ", "").split(","))
 
 
-TASK_DEFAULT_CONFIGS = {
-    "t2i": {
-        "model_family": "image",
-        "example_json": "config/examples/t2i_example.json",
-        "save_path_prefix": "results/t2i_sample",
-    },
-    "t2v": {
-        "model_family": "video",
-        "example_json": "config/examples/t2v_example.json",
-        "save_path_prefix": "results/t2v_sample",
-    },
-    "i2v": {
-        "model_family": "video",
-        "example_json": "config/examples/i2v_example.json",
-        "save_path_prefix": "results/i2v_sample",
-    },
-    "image_edit": {
-        "model_family": "image",
-        "example_json": "config/examples/image_edit_example.json",
-        "save_path_prefix": "results/image_edit_sample",
-    },
-    "video_edit": {
-        "model_family": "video",
-        "example_json": "config/examples/video_edit_example.json",
-        "save_path_prefix": "results/video_edit_sample",
-    },
-    "x2t_image": {
-        "model_family": "image",
-        "example_json": "config/examples/x2t_image_example.json",
-        "save_path_prefix": "results/x2t_image_sample",
-    },
-    "x2t_video": {
-        "model_family": "video",
-        "example_json": "config/examples/x2t_video_example.json",
-        "save_path_prefix": "results/x2t_video_sample",
-    },
-}
-INTERNAL_VALIDATION_MAX_SAMPLES = 100000
-
-
 class LanceModelArgs:
     CATEGORY = "Lance/config"
     RETURN_TYPES = ("MODEL_ARGS",)
@@ -86,8 +46,8 @@ class LanceInferenceArgs:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "task": ("STRING", {"default": "t2i"}),
-                "resolution": ("STRING", {"default": "image_768res"}),
+                "task": (["t2i", "t2v", "i2v", "image_edit", "video_edit", "x2t_image", "x2t_video"], {"default": "t2i"}),
+                "resolution": (["video_192p", "video_360p", "video_480p", "image_256res", "image_512res", "image_768res"], {"default": "image_768res"}),
                 "video_height": ("INT", {"default": 768, "min": 64, "max": 4096, "step": 16}),
                 "video_width": ("INT", {"default": 768, "min": 64, "max": 4096, "step": 16}),
                 "num_frames": ("INT", {"default": 50, "min": 1, "max": 1024}),
@@ -109,56 +69,11 @@ class LanceInferenceArgs:
         }
 
     def build(self, **kw):
-        return (InferenceArguments(**kw),)
-
-
-class ApplyDefaultArgs:
-    CATEGORY = "Lance/config"
-    RETURN_TYPES = ("MODEL_ARGS", "INFERENCE_ARGS")
-    RETURN_NAMES = ("model_args", "inference_args")
-    FUNCTION = "build"
-    # OUTPUT_NODE = True
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "model_args": ("MODEL_ARGS",),
-                "inference_args": ("INFERENCE_ARGS",),
-            }
-        }
-
-    def build(self, model_args: ModelArguments, inference_args: InferenceArguments):
-        if inference_args.task not in TASK_DEFAULT_CONFIGS:
-            raise ValueError(f"Unsupported inference task: {inference_args.task}")
-
-        task_config = TASK_DEFAULT_CONFIGS[inference_args.task]
-        defaults = InferenceArguments()
-
-        if inference_args.save_path_gen == defaults.save_path_gen and task_config.get("save_path_prefix"):
-            inference_args.save_path_gen = task_config["save_path_prefix"]
-        if inference_args.validation_max_samples == defaults.validation_max_samples:
-            inference_args.validation_max_samples = INTERNAL_VALIDATION_MAX_SAMPLES
-        if inference_args.video_height == defaults.video_height:
-            inference_args.video_height = int(task_config.get("video_height", defaults.video_height))
-        if inference_args.video_width == defaults.video_width:
-            inference_args.video_width = int(task_config.get("video_width", defaults.video_width))
-        if inference_args.resolution == defaults.resolution:
-            inference_args.resolution = task_config.get("resolution", defaults.resolution)
-        if inference_args.text_template == defaults.text_template:
-            inference_args.text_template = bool(task_config.get("text_template", defaults.text_template))
-        
+        inference_args = InferenceArguments(**kw)
         inference_args.vae_model_type = "wan"
         inference_args.save_path_gen = ""
 
-        # print(data_args)
-        # print()
-        # print(model_args)
-        # print()
-        # print(inference_args)
-        # print()
-
-        return (model_args, inference_args)
+        return (inference_args,)
 
 
 class LanceDataConfig:

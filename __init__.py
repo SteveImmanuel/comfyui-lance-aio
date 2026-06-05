@@ -3,7 +3,6 @@ __email__ = "steveandreasimanuel@gmail.com"
 __version__ = "0.1.0"
 
 from .nodes.config import (
-    ApplyDefaultArgs,
     LanceDataConfig,
     LanceInferenceArgs,
     LanceModelArgs,
@@ -26,7 +25,6 @@ NODE_CLASS_MAPPINGS = {
     "Lance Tokenizer Loader": LanceTokenizerLoader,
     "Lance Model Args": LanceModelArgs,
     "Lance Inference Args": LanceInferenceArgs,
-    "Lance Apply Default Args": ApplyDefaultArgs,
     "Lance Data Config": LanceDataConfig,
     "Lance Generate": LanceGenerate,
 }
