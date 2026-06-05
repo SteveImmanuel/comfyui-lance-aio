@@ -1,82 +1,55 @@
 import os
 import os.path as osp
-from copy import deepcopy
 
-import comfy.model_management as mm
+import comfy.latent_formats
+import comfy.sd
+import comfy.utils
 import torch
-from comfy.model_patcher import CoreModelPatcher
-from einops import rearrange
 
 from ..constants import CKPT_ROOT_DIR
-from ..modeling.vae.wan.model import WanVideoVAE, reparameterize
-from ..modeling.vae.wan.vae2_2 import Wan2_2_VAE
-
-
-class _WrapWanVideoVAE(WanVideoVAE):
-    # WanVideoVAE resolves the weight path via get_model_path; override to inject our own.
-    def __init__(self, vae_pth, **kwargs):
-        self._vae_pth = vae_pth
-        super().__init__(**kwargs)
-
-    def configure_vae_model(self):
-        self.vae = Wan2_2_VAE(vae_pth=self._vae_pth, device=self.device, dtype=self.dtype)
-
-    # follow wherever the patcher placed the module; scale is out-of-band, so align it per call.
-    def _model_device(self):
-        return next(self.vae.model.parameters()).device
-
-    @torch.no_grad()
-    def vae_decode(self, latents, **kwargs):
-        device = self._model_device()
-        self.vae.scale = [s.to(device) for s in self.vae.scale]
-        samples = []
-        with torch.autocast(device_type=device.type, dtype=self.dtype):
-            for u in latents:
-                u = u.unsqueeze(0).to(device=device)
-                u = rearrange(u, "b ... c -> b c ...")
-                x_hat = self.vae.decode(u)
-                samples.append(x_hat.squeeze(0))
-        return samples
-
-    @torch.no_grad()
-    def vae_encode(self, samples, **kwargs):
-        device = self._model_device()
-        self.vae.scale = [s.to(device) for s in self.vae.scale]
-        latents = []
-        with torch.autocast(device_type=device.type, dtype=self.dtype):
-            for x in samples:
-                x = x.to(device=device).unsqueeze(0)
-                u, log_var = self.vae.encode(x)
-                if self.use_sample:
-                    u = reparameterize(u, log_var)
-                u = rearrange(u, "b c ... -> b ... c")
-                latents.append(u.squeeze(0))
-        return latents
 
 
 class WANVAELoader:
+    # stock VAELoader minus the models/vae dir constraint; arch is sniffed from the state dict
     CATEGORY = "Lance"
-    RETURN_TYPES = ("WAN_VAE", "VAE_CONFIG")
+    RETURN_TYPES = ("VAE",)
     FUNCTION = "load"
-    # OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
-        paths = [x for x in os.listdir(CKPT_ROOT_DIR) if x.endswith(".pth")]
+        paths = [x for x in os.listdir(CKPT_ROOT_DIR) if x.endswith(".pth")] if osp.isdir(CKPT_ROOT_DIR) else []
         return {
             "required": {
                 "ckpt_path": (paths, {"default": "Wan2.2_VAE.pth"}),
             }
         }
 
+    @classmethod
+    def VALIDATE_INPUTS(cls, ckpt_path):
+        if not osp.isfile(osp.join(CKPT_ROOT_DIR, ckpt_path)):
+            return f"{ckpt_path} not found in {CKPT_ROOT_DIR}"
+        return True
+
     def load(self, ckpt_path):
+        sd = comfy.utils.load_torch_file(osp.join(CKPT_ROOT_DIR, ckpt_path))
+        vae = comfy.sd.VAE(sd=sd)
+        vae.throw_exception_if_invalid()
+        return (vae,)
 
-        ckpt_path = osp.join(CKPT_ROOT_DIR, ckpt_path)
-        load_device = mm.get_torch_device()
-        offload_device = mm.unet_offload_device()
 
-        wrapper = _WrapWanVideoVAE(vae_pth=ckpt_path, device=offload_device, dtype=torch.bfloat16)
-        patcher = CoreModelPatcher(wrapper.vae.model, load_device=load_device, offload_device=offload_device)
-        patcher.set_model_compute_dtype(torch.bfloat16)
+class ComfyVAEAdapter:
+    """Duck-types Lance's WanVideoVAE.vae_encode on top of a comfy VAE for make_padded_latent."""
 
-        return ({"patcher": patcher, "module": wrapper}, deepcopy(wrapper.vae_config))
+    def __init__(self, vae):
+        self.vae = vae
+        self.latent_format = comfy.latent_formats.Wan22()
+
+    @torch.no_grad()
+    def vae_encode(self, samples, **kwargs):
+        latents = []
+        for x in samples:  # [C,T,H,W] in [-1,1]
+            pixels = (x.movedim(0, -1).unsqueeze(0) + 1.0) / 2.0  # -> [1,T,H,W,C] in [0,1]
+            z = self.vae.encode(pixels)  # [1,48,t,h,w] raw; comfy stages + tiles on OOM
+            z = self.latent_format.process_in(z)  # (z - mean) / std, matching Lance's normalization
+            latents.append(z.squeeze(0).movedim(0, -1))  # [t,h,w,48]
+        return latents
