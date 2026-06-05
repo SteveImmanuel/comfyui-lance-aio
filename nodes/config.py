@@ -82,12 +82,5 @@ class LanceArgs:
         data_cfg.enhance_prompt = inference_args.enhance_prompt
         data_cfg.system_prompt_type = inference_args.system_prompt_type
 
-        print(model_args)
-        print()
-        print(inference_args)
-        print()
-        print(data_cfg)
-        print()
-
         return (inference_args, model_args, data_cfg)
 

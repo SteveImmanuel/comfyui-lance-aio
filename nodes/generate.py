@@ -86,16 +86,17 @@ class LanceGenerate:
                     data_dict["padded_videos"], data_dict["vae_data_mode"], ComfyVAEAdapter(vae)
                 )
 
-            # denoise phase: stage LLM(+ViT), reserving headroom for the KV cache + per-step activations
-            llm_cfg = lance.language_model.config
-            n_tokens = int(sum(data_dict["sample_lens"]))
-            head_dim = llm_cfg.hidden_size // llm_cfg.num_attention_heads
-            kv_bytes = n_tokens * llm_cfg.num_hidden_layers * 2 * llm_cfg.num_key_value_heads * head_dim * 2
-            act_bytes = n_tokens * llm_cfg.hidden_size * 2 * 64  # ~64 live bf16 tensors per token, empirical fudge
+            # # denoise phase: stage LLM(+ViT), reserving headroom for the KV cache + per-step activations
+            # llm_cfg = lance.language_model.config
+            # n_tokens = int(sum(data_dict["sample_lens"]))
+            # head_dim = llm_cfg.hidden_size // llm_cfg.num_attention_heads
+            # kv_bytes = n_tokens * llm_cfg.num_hidden_layers * 2 * llm_cfg.num_key_value_heads * head_dim * 2
+            # act_bytes = n_tokens * llm_cfg.hidden_size * 2 * 64  # ~64 live bf16 tensors per token, empirical fudge
             patchers = [qwen2_causal_lm["patcher"]]
             if vit:
                 patchers.append(vit["patcher"])
-            mm.load_models_gpu(patchers, memory_required=kv_bytes + act_bytes)
+            # mm.load_models_gpu(patchers, memory_required=kv_bytes + act_bytes)
+            mm.load_models_gpu(patchers)
 
             if inference_args.task in GENERATION_TASKS:
                 params = {
@@ -147,7 +148,6 @@ class LanceGenerate:
                 # decode phase: drop denoise-phase refs; only the VAE is needed from here on
                 del params, padded_videos, batch
                 data_dict.clear()
-                _clean_memory()
                 mm.unload_all_models()
                 _clean_memory()
 

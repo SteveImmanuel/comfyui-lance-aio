@@ -1,4 +1,5 @@
 import os.path as osp
+import comfy.latent_formats
 
 import folder_paths
 from .common.utils.misc import AutoEncoderParams
@@ -39,3 +40,4 @@ VAE_CONFIG = AutoEncoderParams(
     downsample_temporal=4,
     z_channels=48,
 )
+LATENT_FORMAT = comfy.latent_formats.Wan22()

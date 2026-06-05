@@ -17,7 +17,6 @@ class VitLoader:
     CATEGORY = "Lance"
     RETURN_TYPES = ("VIT", "VIT_CONFIG")
     FUNCTION = "load"
-    # OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
