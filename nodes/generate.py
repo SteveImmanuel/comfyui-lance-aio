@@ -139,30 +139,30 @@ class LanceGenerate:
                 else:
                     denoise_latent, captions, padded_videos, index = lance.validation_gen(**params)
 
-                # decode phase: drop denoise-phase refs; only the VAE is needed from here on
+                # decode phase, only the VAE is needed from here on
                 del params, padded_videos, batch
                 data_dict.clear()
                 mm.unload_all_models()
                 _clean_memory()
+                
+                if inference_args.task in {TASK_I2V, TASK_IMAGE_EDIT, TASK_VIDEO_EDIT}:
+                    target_latents = [denoise_latent[0][-1]]
+                else:
+                    target_latents = denoise_latent[0]
 
-                for _, latent in enumerate(denoise_latent):
-                    if inference_args.task in {TASK_I2V, TASK_IMAGE_EDIT, TASK_VIDEO_EDIT}:
-                        target_latents = [latent[-1]]
-                    else:
-                        target_latents = latent
+                frames = []
+                for latent in target_latents:
+                    z = LATENT_FORMAT.process_out(
+                        latent.unsqueeze(0).movedim(-1, 1)
+                    )  # [t,h,w,c] -> [1,c,t,h,w], *std+mean
 
-                    frames = []
-                    for latent_ in target_latents:
-                        z = LATENT_FORMAT.process_out(
-                            latent_.unsqueeze(0).movedim(-1, 1)
-                        )  # [t,h,w,c] -> [1,c,t,h,w], *std+mean
-                        img = vae.decode(z)  # [B,T,H,W,C] float 0..1
-                        if img.ndim == 5:
-                            img = img.reshape(-1, *img.shape[-3:])
-                        frames.append(img.cpu())
+                    img = vae.decode(z)  # [B,T,H,W,C] float 0..1
+                    if img.ndim == 5:
+                        img = img.reshape(-1, *img.shape[-3:])
+                    frames.append(img.cpu())
 
-                    image = torch.cat(frames, dim=0)
-                    return (image,)
+                image = torch.cat(frames, dim=0)
+                return (image,)
 
             elif inference_args.task in UNDERSTANDING_TASKS:
                 params = {
