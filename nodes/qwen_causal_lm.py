@@ -110,7 +110,7 @@ class Qwen2CausalLMLoader:
 
         if missing or unexpected:
             logging.warning(
-                "[Lance VitLoader] state_dict mismatch: missing=%d unexpected=%d %s",
+                "[Lance Qwen Loader] state_dict mismatch: missing=%d unexpected=%d %s",
                 len(missing),
                 len(unexpected),
                 (missing[:5] + unexpected[:5]),

@@ -80,7 +80,7 @@ class LanceLoader:
         missing, unexpected = lance.load_state_dict(glue_sd, strict=False)
         if missing or unexpected:
             logging.warning(
-                "[Lance VitLoader] state_dict mismatch: missing=%d unexpected=%d %s",
+                "[Lance Main Loader] state_dict mismatch: missing=%d unexpected=%d %s",
                 len(missing),
                 len(unexpected),
                 (missing[:5] + unexpected[:5]),

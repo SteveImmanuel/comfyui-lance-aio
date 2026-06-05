@@ -22,7 +22,6 @@ from .vae import ComfyVAEAdapter
 
 
 def _clean_memory(*objects):
-    """Clear temporary container references and release unused GPU allocator cache."""
     for obj in objects:
         if isinstance(obj, dict):
             obj.clear()
