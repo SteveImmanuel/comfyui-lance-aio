@@ -5,10 +5,17 @@ from torch.utils.data import DataLoader
 
 from ..common.val.utils import make_padded_latent
 from ..config.config_factory import InferenceArguments, ModelArguments
+from ..constants import (
+    GENERATION_TASKS,
+    MAX_GENERATION_LENGTH,
+    TASK_I2V,
+    TASK_IMAGE_EDIT,
+    TASK_VIDEO_EDIT,
+    UNDERSTANDING_TASKS,
+)
 from ..data.dataset_base import SimpleCustomBatch
 from ..modeling.lance.lance import Lance
 from ..modeling.qwen2.tokenization_qwen2_fast import Qwen2Tokenizer
-from ..constants import GENERATION_TASKS, UNDERSTANDING_TASKS, MAX_GENERATION_LENGTH, TASK_I2V, TASK_IMAGE_EDIT, TASK_VIDEO_EDIT
 from .vae import ComfyVAEAdapter
 
 

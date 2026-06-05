@@ -20,11 +20,7 @@ class VitLoader:
 
     @classmethod
     def INPUT_TYPES(cls):
-        dirs = (
-            sorted(d for d in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, d)))
-            if osp.isdir(CKPT_ROOT_DIR)
-            else []
-        )
+        dirs = [x for x in os.listdir(CKPT_ROOT_DIR) if osp.isdir(osp.join(CKPT_ROOT_DIR, x))]
         return {
             "required": {
                 "ckpt_dir": (dirs, {"default": "Qwen2.5-VL-ViT"}),

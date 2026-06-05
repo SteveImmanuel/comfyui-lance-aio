@@ -1,12 +1,12 @@
-from ..common.utils.misc import AutoEncoderParams, tuple_mul
+from ..common.utils.misc import tuple_mul
 from ..config.config_factory import InferenceArguments, ModelArguments
-from ..data.dataset_base import DataConfig
 from ..constants import ALL_TASKS, RESOLUTION_CONFIGS, VAE_CONFIG
+from ..data.dataset_base import DataConfig
 
 
 class LanceArgs:
     CATEGORY = "Lance/config"
-    RETURN_TYPES = ("INFERENCE_ARGS","MODEL_ARGS", "DATA_CONFIG")
+    RETURN_TYPES = ("INFERENCE_ARGS", "MODEL_ARGS", "DATA_CONFIG")
     FUNCTION = "build"
 
     @classmethod
@@ -31,20 +31,20 @@ class LanceArgs:
 
         inference_args = InferenceArguments(
             apply_qwen_2_5_vl_pos_emb=True,
-            vae_model_type='wan',
-            save_path_gen='',
+            vae_model_type="wan",
+            save_path_gen="",
             visual_gen=True,
             visual_und=True,
             copy_init_moe=True,
             enhance_prompt=False,
-            **kw
+            **kw,
         )
 
         model_args = ModelArguments(
-            vit_type= 'qwen_2_5_vl_original',
-            latent_patch_size=[1,1,1], 
-            max_latent_size=64, 
-            max_num_frames=121, 
+            vit_type="qwen_2_5_vl_original",
+            latent_patch_size=[1, 1, 1],
+            max_latent_size=64,
+            max_num_frames=121,
             cfg_text_scale=cfg_text_scale,
             tie_word_embeddings=False,
             llm_qk_norm=True,
@@ -83,4 +83,3 @@ class LanceArgs:
         data_cfg.system_prompt_type = inference_args.system_prompt_type
 
         return (inference_args, model_args, data_cfg)
-

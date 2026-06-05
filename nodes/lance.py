@@ -1,3 +1,4 @@
+import logging
 import os
 import os.path as osp
 
@@ -5,7 +6,6 @@ import comfy.utils
 from comfy.text_encoders.qwen_vl import Qwen2VLVisionTransformer
 from transformers.models.qwen2_5_vl.configuration_qwen2_5_vl import Qwen2_5_VLVisionConfig
 
-from ..common.utils.misc import AutoEncoderParams
 from ..config.config_factory import InferenceArguments, ModelArguments
 from ..constants import CKPT_ROOT_DIR, VAE_CONFIG
 from ..data.data_utils import add_special_tokens
@@ -18,7 +18,6 @@ class LanceLoader:
     CATEGORY = "Lance"
     RETURN_TYPES = ("LANCE",)
     FUNCTION = "load"
-    # OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -92,7 +91,13 @@ class LanceLoader:
             if not k.startswith(("language_model.", "vit_model.")) and k != "latent_pos_embed.pos_embed"
         }
         missing, unexpected = lance.load_state_dict(glue_sd, strict=False)
-
+        if missing or unexpected:
+            logging.warning(
+                "[Lance VitLoader] state_dict mismatch: missing=%d unexpected=%d %s",
+                len(missing),
+                len(unexpected),
+                (missing[:5] + unexpected[:5]),
+            )
         return (lance,)
 
 

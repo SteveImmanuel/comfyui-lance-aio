@@ -1,7 +1,8 @@
 import os.path as osp
-import comfy.latent_formats
 
+import comfy.latent_formats
 import folder_paths
+
 from .common.utils.misc import AutoEncoderParams
 
 CKPT_ROOT_DIR = osp.join(folder_paths.models_dir, "lance")
@@ -33,7 +34,7 @@ UNDERSTANDING_TASKS = {
     TASK_X2T_VIDEO,
 }
 MAX_GENERATION_LENGTH = 256
-RESOLUTION_CONFIGS=["video_192p", "video_360p", "video_480p", "image_256res", "image_512res", "image_768res"]
+RESOLUTION_CONFIGS = ["video_192p", "video_360p", "video_480p", "image_256res", "image_512res", "image_768res"]
 
 VAE_CONFIG = AutoEncoderParams(
     downsample_spatial=16,

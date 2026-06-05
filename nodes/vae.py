@@ -4,6 +4,7 @@ import os.path as osp
 import comfy.utils
 import torch
 from comfy.sd import VAE
+
 from ..constants import CKPT_ROOT_DIR, LATENT_FORMAT
 
 
