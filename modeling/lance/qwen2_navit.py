@@ -27,7 +27,10 @@ from torch.nn.attention.flex_attention import flex_attention
 from torch.nn.functional import scaled_dot_product_attention
 from transformers.utils import ModelOutput
 
-from flash_attn import flash_attn_varlen_func
+try:
+    from flash_attn import flash_attn_varlen_func
+except ImportError:
+    flash_attn_varlen_func = None
 from ...modeling.qwen2.modeling_qwen2 import (
     Qwen2Attention,
     Qwen2MLP,
@@ -41,6 +44,36 @@ from ...modeling.qwen2_5_vl.modeling_qwen2_5_vl import (
     apply_multimodal_rotary_pos_emb,
 )
 from ...modeling.qwen2.configuration_qwen2 import Qwen2Config
+
+
+def sdpa_varlen_func(q, k, v, cu_seqlens_q, cu_seqlens_k, max_seqlen_q=None, max_seqlen_k=None, causal=False):
+    out = torch.empty_like(q)
+    num_heads, num_kv_heads = q.shape[1], k.shape[1]
+    for i in range(cu_seqlens_q.numel() - 1):
+        q0, q1 = cu_seqlens_q[i].item(), cu_seqlens_q[i + 1].item()
+        k0, k1 = cu_seqlens_k[i].item(), cu_seqlens_k[i + 1].item()
+        qi = q[q0:q1].transpose(0, 1).unsqueeze(0)  # [1, H, Lq, D]
+        ki = k[k0:k1].transpose(0, 1).unsqueeze(0)  # [1, Hkv, Lk, D]
+        vi = v[k0:k1].transpose(0, 1).unsqueeze(0)
+        if num_kv_heads != num_heads:  # GQA
+            ki = ki.repeat_interleave(num_heads // num_kv_heads, dim=1)
+            vi = vi.repeat_interleave(num_heads // num_kv_heads, dim=1)
+
+        Lq, Lk = q1 - q0, k1 - k0
+        attn_mask, is_causal = None, False
+        if causal:
+            if Lq == Lk:
+                is_causal = True
+            else:  # flash aligns the causal mask to the bottom right (kv-cache decode)
+                attn_mask = torch.arange(Lk, device=q.device)[None, :] <= (
+                    torch.arange(Lq, device=q.device)[:, None] + (Lk - Lq)
+                )
+        oi = scaled_dot_product_attention(qi, ki, vi, attn_mask=attn_mask, is_causal=is_causal)
+        out[q0:q1] = oi.squeeze(0).transpose(0, 1)
+    return out
+
+
+attn_varlen_func = flash_attn_varlen_func if flash_attn_varlen_func is not None else sdpa_varlen_func
 
 torch._dynamo.config.cache_size_limit = 512
 torch._dynamo.config.accumulated_cache_size_limit = 4096
@@ -206,7 +239,7 @@ class PackedAttention(Qwen2Attention):
         cu_seqlens_q = torch.nn.functional.pad(torch.cumsum(query_lens, dim=0), (1, 0))
         cu_seqlens_k = torch.nn.functional.pad(torch.cumsum(key_values_lens, dim=0), (1, 0))
 
-        packed_attn_output = flash_attn_varlen_func(
+        packed_attn_output = attn_varlen_func(
             q=packed_query_states,
             k=merged_key_states,
             v=merged_value_states,
@@ -460,7 +493,7 @@ class PackedAttentionMoT(Qwen2Attention):
         cu_seqlens_q = torch.nn.functional.pad(torch.cumsum(query_lens, dim=0), (1, 0))
         cu_seqlens_k = torch.nn.functional.pad(torch.cumsum(key_values_lens, dim=0), (1, 0))
 
-        packed_attn_output = flash_attn_varlen_func(
+        packed_attn_output = attn_varlen_func(
             q=packed_query_states,
             k=merged_key_states,
             v=merged_value_states,
