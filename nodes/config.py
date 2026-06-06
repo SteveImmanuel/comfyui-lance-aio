@@ -10,7 +10,7 @@ from ..data.dataset_base import DataConfig
 
 
 class LanceArgs:
-    CATEGORY = "Lance/config"
+    CATEGORY = "Lance"
     RETURN_TYPES = ("MODEL_ARGS", "INFERENCE_ARGS", "DATA_CONFIG", "STRING", "STRING", "STRING")
     RETURN_NAMES = ("model_args", "inference_args", "data_config", "LANCE_CKPT_DIR", "VIT_CKPT_DIR", "WAN_CKPT_PATH")
     FUNCTION = "build"
