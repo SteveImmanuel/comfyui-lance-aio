@@ -10,5 +10,5 @@ Repository = "https://github.com/SteveImmanuel/comfyui-lance-aio"
 
 [tool.comfy]
 PublisherId = "steveimm"
-DisplayName = "Lance 3B AIO"
+DisplayName = "Lance-3B AIO"
 Icon = ""
