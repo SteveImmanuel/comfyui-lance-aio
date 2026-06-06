@@ -1,5 +1,7 @@
 # ComfyUI Lance AIO
-This repository implements ComfyUI custom nodes in order to run Lance-3B model using ComfyUI. It supports 7 different tasks:
+This repository implements ComfyUI custom nodes in order to run Lance-3B model using ComfyUI. 
+
+It supports 7 different tasks:
 - Text to Image
 - Text to Video
 - Image-Text to Video
@@ -21,11 +23,12 @@ This codebase is a faithful port to the official codebase, with additional suppo
 Clone this repository into ComfyUI's custom nodes directory:
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/bytedance/Lance
+git clone https://github.com/SteveImmanuel/comfyui-lance-aio
 ```
 Install the dependencies. I highly recommend that ComfyUI is setup using virtual environment because it needs to co-exist without conflict with the custom node's dependencies.
 
 ```bash
+cd comfyui-lance-aio
 pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements.txt
 ```
@@ -43,11 +46,42 @@ pip install --no-cache-dir --no-deps --force-reinstall https://huggingface.co/st
 - `torch==2.8.0`
 - `torchvision==0.23.0`
 
-`torchaudio` is not required however, it is one of the requirements in ComfyUI. If you downgrade `torch` to `2.8.0`, `torchvision` and `torchaudio` needs to be updated with the compatible version as well.
+`torchaudio` is not required however, it is one of the requirements in ComfyUI. If you use `torch==2.8.0`, `torchvision` and `torchaudio` needs to be updated with the compatible version as well.
 
 Additionally, the official Lance codebase is not compatible with `transformers>=5`, so you need to downgrade to `transformers>=4.50.3,<5` as specified in the `requirements.txt`.
+
+## Model Checkpoint
+Download Lance-3B checkpoint from hugginface and place them into ComfyUI `models` directory. Follow this structure convention:
+```
+📂 ComfyUI/
+├── 📂 models/
+    ├── 📂 lance/
+│   │   ├── 📂 Lance_3B
+│   │   │   ├── generation_config.json
+│   │   │   ├── llm_config.json
+│   │   │   ├── merges.txt
+│   │   │   ├── model.safetensors
+│   │   │   ├── tokenizer.json
+│   │   │   └── vocab.json
+│   │   ├── 📂 Lance_3B_Video
+│   │   │   ├── generation_config.json
+│   │   │   ├── llm_config.json
+│   │   │   ├── merges.txt
+│   │   │   ├── model.safetensors
+│   │   │   ├── tokenizer.json
+│   │   │   ├── tokenizer_config.json
+│   │   │   └── vocab.json
+│   │   ├── 📂 Qwen2.5-VL-ViT
+│   │   │   ├── config.json
+│   │   │   └── vit.safetensors
+│   │   ├── Wan2.2_VAE.pth
+```
+
 ## Usage
-I have included CustomUI workflow templates in the [workflows directory](./workflows/), one for each of the task. Simply drag and drop the `json` file into ComfyUI to open it.
+I have included CustomUI workflow templates in [example_workflows](./workflows/), one for each of the task. 
+
+They should show up in the ComfyUI template browser automatically. If they don't, simply drag and drop the `json` file into ComfyUI to open it.
+
 
 
 ## Acknowledgement
@@ -56,3 +90,8 @@ Lance model page: https://huggingface.co/bytedance-research/Lance
 Lance official codebase: https://github.com/bytedance/Lance
 
 AI was used in order to understand the structure of official codebase as well as ComfyUI API to build the custom nodes. However, I manually **wrote and reviewed** every single line of code in the implementation.
+
+## License
+The code under `modeling/`, `data/`, `common/`, and `config/` is adapted from the official codebase, Copyright (c) 2025 ByteDance Ltd. and/or its affiliates, licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). 
+
+The rest of this repository is licensed under the [MIT License](./LICENSE).
