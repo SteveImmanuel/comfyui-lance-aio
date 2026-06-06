@@ -29,11 +29,13 @@ Install the dependencies. I highly recommend that ComfyUI is setup using virtual
 
 ```bash
 cd comfyui-lance-aio
-pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements.txt
 ```
 
-Additionally, you need to install `flash-attn`. You can either build it from source following the [official instruction](https://github.com/dao-ailab/flash-attention#installation-and-features) or you can use pre-built wheel from third-party sources.
+## Optional
+Install `flash-attn` (recommended for speed). If it is not installed, there is fallback mechanism to use PyTorch SDPA, which produces equivalent results but runs slower. 
+
+You can either build it from source following the [official instruction](https://github.com/dao-ailab/flash-attention#installation-and-features) or you can use pre-built wheel from third-party sources.
 
 Following the official codebase instruction, for example with Python 3.13, CUDA 12, you can use:
 ```bash
@@ -46,9 +48,7 @@ pip install --no-cache-dir --no-deps --force-reinstall https://huggingface.co/st
 - `torch==2.8.0`
 - `torchvision==0.23.0`
 
-`torchaudio` is not required however, it is one of the requirements in ComfyUI. If you use `torch==2.8.0`, `torchvision` and `torchaudio` needs to be updated with the compatible version as well.
-
-Additionally, the official Lance codebase is not compatible with `transformers>=5`, so you need to downgrade to `transformers>=4.50.3,<5` as specified in the `requirements.txt`.
+The official Lance codebase is not compatible with `transformers>=5`, so you need to downgrade to `transformers>=4.50.3,<5` as specified in the `requirements.txt`.
 
 ## Model Checkpoint
 Download Lance-3B checkpoint from hugginface and place them into ComfyUI `models` directory. Follow this structure convention:
