@@ -1,0 +1,3 @@
+transformers>=4.50.3,<5
+decord==0.6.0
+imageio>=2.34.0
