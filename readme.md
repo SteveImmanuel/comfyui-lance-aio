@@ -17,7 +17,7 @@ This codebase is a faithful port to the official codebase, with additional suppo
 
 
 > [!CAUTION]
-> In theory, image-related tasks should run on at least 8GB VRAM, while video-related tasks requires at least 12GB VRAM. However, I have not confirmed this as I don't have the hardware to test.
+> In theory, image-related tasks should run on at least 8GB VRAM, while video-related tasks may require at least 12GB VRAM. However, I have not confirmed the lower-bound requirement as I don't have the hardware to test.
 
 ## Installation
 Clone this repository into ComfyUI's custom nodes directory:
