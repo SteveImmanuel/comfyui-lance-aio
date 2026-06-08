@@ -78,7 +78,7 @@ Download Lance-3B checkpoint from hugginface and place them into ComfyUI `models
 ```
 
 ## Usage
-I have included CustomUI workflow templates in [example_workflows](./workflows/), one for each of the task. 
+I have included workflow templates in [example_workflows](./workflows/), one for each of the task. 
 
 They should show up in the ComfyUI template browser automatically. If they don't, simply drag and drop the `json` file into ComfyUI to open it.
 
